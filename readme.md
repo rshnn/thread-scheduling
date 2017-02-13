@@ -6,31 +6,6 @@ cs-518 osdesign
 
 ## dev-notes
 
-### rshnn Fri 10 Feb 2017 03:11:50 PM EST
-
-Boiler plated the header and .c file.  Still need to flesh out the structs we're using.  
-
-So far, only made three structs: 
-
-+ `struct state`
-    + Something that holds the state of a thread 
-    + Might need to add more states later on?
-    
-+ `struct my_pthread_t` 
-    * For sure need to add more to this struct
-
-+ `struct my_thread_attr_t`
-    + No idea what to put in this thing yet
-    
-- `struct my_pthread_mutex_t`
-    + I just made it a simple binary lock for now.
-
-+ `struct my_pthread_mutex_attr_t`
-    * ????????
-
-I'll try to find some time later to flesh out a basic scheduler struct
-
-
 ### rshnn Mon 13 Feb 2017 09:16:47 AM EST
 
 Meeting Notes | Sunday 2016.02.12
@@ -66,7 +41,7 @@ Meeting Notes | Sunday 2016.02.12
             * `unsigned int id`
             * `int lock`
                 - state of lock
-            * `my_pthread_t* owning_thread`
+            * `my_pthread_took * owning_thread`
                 - Will we instead need a pointer to the thread_unit?
                 - Or both?
             * `thread_unit_list* waiting_queue`
@@ -124,3 +99,30 @@ Meeting Notes | Sunday 2016.02.12
                 + Do we need separate lists for locked and unlocked mutexes?
             - `ucontext_t scheduler_ucontext`
             - `ucontext_t main_ucontext`
+
+
+### rshnn Fri 10 Feb 2017 03:11:50 PM EST
+
+Boiler plated the header and .c file.  Still need to flesh out the structs we're using.  
+
+So far, only made three structs: 
+
++ `struct state`
+    + Something that holds the state of a thread 
+    + Might need to add more states later on?
+    
++ `struct my_pthread_t` 
+    * For sure need to add more to this struct
+
++ `struct my_thread_attr_t`
+    + No idea what to put in this thing yet
+    
+- `struct my_pthread_mutex_t`
+    + I just made it a simple binary lock for now.
+
++ `struct my_pthread_mutex_attr_t`
+    * ????????
+
+I'll try to find some time later to flesh out a basic scheduler struct
+
+
