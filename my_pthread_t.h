@@ -19,7 +19,7 @@
 #include <ucontext.h>
 
 
-#define PAGE_SIZE 4096;
+#define PAGE_SIZE 4096
 #define PRIORITY_LEVELS 5
 #define TIME_QUANTUM 50000                      // 50 ms 
 #define MAINTENENCE_TIME 10*TIME_QUANTUM
@@ -83,9 +83,9 @@ typedef enum state_ {
 	READY,          // Ready to be scheduled 
 	RUNNING,        // Currently executing 
 // 	BLOCKED,        // A thread that is blocked waiting for a lock 
-	WAITING,        // A thread that is waiting indefinitely for another thread to perform an action (yield?)
+	WAITING,        // A thread that is waiting indefinitely for another thread to perform an action (yield+blocked)
 	TERMINATED,     // Exited.  Terminated 
-	ZOMBIE          // Defined as zombie process 
+	ZOMBIE          // Identified as zombie process 
 
 }state;
 
@@ -148,13 +148,16 @@ typedef struct mutex_node_ {
 			Each index contains a linked list of thread_units
 		Contains mutex_list
 			A linked list of mutex_nodes
+		Contains two queues of thread_units:  running and waiting 
 		Stores ucontexts of main thread and scheduler thread
 */
 typedef struct scheduler_ {
     
     struct thread_unit_list_ 	priority_array[PRIORITY_LEVELS];
     struct mutex_node_* 		mutex_list;
-    ucontext_t          		scheduler_ucontext;
+    struct thread_unit_list_	running;
+    struct thread_unit_list_	waiting;
+    ucontext_t 					scheduler_ucontext;
     ucontext_t					main_ucontext;
 
 }scheduler;

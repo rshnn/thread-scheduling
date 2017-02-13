@@ -97,6 +97,8 @@ Meeting Notes | Sunday 2016.02.12
             * `mutex_node* mutex_list`
                 + List of mutexes
                 + Do we need separate lists for locked and unlocked mutexes?
+            - `thread_unit_list running`
+            - `thread_unit_list waiting`
             - `ucontext_t scheduler_ucontext`
             - `ucontext_t main_ucontext`
 
