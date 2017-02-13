@@ -93,10 +93,10 @@ typedef struct my_pthread_mutexattr_t {
 * 
 */
 
-typdef struct thread_god{
+typedef struct thread_god{
     
-    scheduler_unit_t * thread_unit;        //array of size NUM_PRIORITIES
-    ucontext_t          context;
+    struct scheduler_unit_t * 	thread_unit;        //array of size NUM_PRIORITIES
+    ucontext_t          		context;
     
 }thread_god;
 
@@ -104,12 +104,12 @@ typdef struct thread_god{
 
 typedef struct scheduler_unit_t{
     
-    my_pthread_t*       thread;
-    ucontext_t          context;
-    state               state;          // NOTE: do we need to keep info on why its waiting here?
-	int                 time_slice;
-	int                 run_count;
-    scheduler_unit_t*   waiting_on_me;  // rename later
+    my_pthread_t*       		thread;
+    ucontext_t          		context;
+    state               		state;          // NOTE: do we need to keep info on why its waiting here?
+	int                 		time_slice;
+	int                 		run_count;
+    struct scheduler_unit_t*    waiting_on_me;  // rename later
     
 }scheduler_unit_t;
 
