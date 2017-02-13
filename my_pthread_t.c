@@ -1,12 +1,13 @@
-/*
+/************************************************************************************************************
 *	cs518 - assignment01 
 *	thread scheduling 
 *
 *	my_pthread_t.c 	
-*/
-
+************************************************************************************************************/
 
 #include "my_pthread_t.h"
+
+static scheduler* scheduler;
 
 
 
@@ -23,9 +24,32 @@ int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){}
 int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){}
 
 
+/************************************************************************************************************
+*
+*    SCHEDULER LIBRARY 
+*
+************************************************************************************************************/
+
+void scheduler_init(){
+
+	/* Initialize timer signal handler */
+
+
+};
+
+void scheduler_sig_handler(int signum){
+
+	print("%i\n", signum);
+};
+
+
+
+
+
 
 
 int main(){
 
 	printf("test print.\n");
+
 }

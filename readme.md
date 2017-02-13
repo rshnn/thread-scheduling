@@ -99,6 +99,9 @@ Meeting Notes | Sunday 2016.02.12
                 + Do we need separate lists for locked and unlocked mutexes?
             - `thread_unit_list running`
             - `thread_unit_list waiting`
+                + Do we really need the running&waiting queues?
+                + The assignment specifies that we do
+                + But the role can be accomplished using states
             - `ucontext_t scheduler_ucontext`
             - `ucontext_t main_ucontext`
 
