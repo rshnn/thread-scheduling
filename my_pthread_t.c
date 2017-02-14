@@ -147,6 +147,10 @@ void scheduler_sig_handler(){
 *
 ************************************************************************************************************/
 
+/* 
+	Tests the thread_unit library.  
+	Stresses the thread_unit_list linked list structure  
+*/
 void ___debugging_thread_unit_lib(){
 	
 
@@ -212,8 +216,6 @@ void ___debugging_thread_unit_lib(){
 	thread_list_enqueue(list, unit_arr[5]);
 	printf("\nShould show only thread 99: \n");
 	_print_thread_list(list);
-
-
 }
 
 
