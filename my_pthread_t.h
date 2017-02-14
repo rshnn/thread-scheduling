@@ -36,7 +36,7 @@
 */
 typedef struct my_pthread_t {
 
-    long int 	threadID;
+    long int 			threadID;
 	void *              return_val;
 	int                 priority;
 
@@ -154,12 +154,12 @@ typedef struct mutex_node_ {
 typedef struct scheduler_t {
     
     int 						initialized;
-    struct thread_unit_list_ 	priority_array[PRIORITY_LEVELS];
+    struct thread_unit_list_* 	priority_array[PRIORITY_LEVELS];
     struct mutex_node_* 		mutex_list;
-    struct thread_unit_list_	running;
-    struct thread_unit_list_	waiting;
-    ucontext_t 					scheduler_ucontext;
-    ucontext_t					main_ucontext;
+    struct thread_unit_list_*	running;
+    struct thread_unit_list_*	waiting;
+    ucontext_t 					scheduler_ucontext;	// Turn this into a thread_unit?
+    ucontext_t					main_ucontext;		// Turn this into a thread_unit?
 
 }scheduler_t;
 

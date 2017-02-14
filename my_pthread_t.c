@@ -9,8 +9,8 @@
 #include "thread_unit_lib.h" 	
 
 static scheduler_t* scheduler;
-
-
+static ucontext_t main_context;
+static ucontext_t scheduler_context;
 
 /************************************************************************************************************
 *
@@ -42,22 +42,9 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){}
 *
 ************************************************************************************************************/
 
+
+
 void scheduler_init(){
-
-
-
-    /**********************************************************************************
-		Initialize timer signal handler  
-    **********************************************************************************/
-
-	struct sigaction signal_action;
-	sigemptyset(&signal_action.sa_mask);
-
-	if(sigaction(SIGSEGV, &signal_action, NULL) == -1){
-		printf("Failure to initialize signal handler.\n");
-		exit(EXIT_FAILURE);
-	}
-
 
 
 
@@ -65,33 +52,36 @@ void scheduler_init(){
 		Initialize scheduler structures  
     **********************************************************************************/
 
+	int i;
 
-	/* 
-		Things that need to be initialized 
-			scheduler_t scheduler
-				priority_array
-				mutex_list
-				running
-				waiting
-				scheduler_ucontext
-				main_ucontext
+	scheduler = (scheduler_t*)malloc(sizeof(scheduler_t));
 
-	*/
+	/* Initialize each priority queue (thread_unit_list) */
+	for(i = 0; i<= PRIORITY_LEVELS; i++){
+		scheduler->priority_array[i] = thread_list_init();	// thread_list_init() does mallocing
+	}
+
+	/* Initialize the currently running and waiting queues */
+	scheduler->running = thread_list_init();
+	scheduler->waiting = thread_list_init();
+	
+
+	scheduler->initialized = 1;
+
 
 
     /**********************************************************************************
-		....
+		Initialize timer signal handler  
     **********************************************************************************/
 
+	/* The below is useful for redirecting sigactions before setting a signal handler */
+	// struct sigaction signal_action;
+	// sigemptyset(&signal_action.sa_mask);
 
-
-
-
-
-
-
-
-
+	// if(sigaction(SIGSEGV, &signal_action, NULL) == -1){
+	// 	printf("Failure to initialize signal handler.\n");
+	// 	exit(EXIT_FAILURE);
+	// }
 
 
 	/* Direct sig-alarms to scheduler_sig_handler */
@@ -121,12 +111,12 @@ void scheduler_sig_handler(){
 	
 
 	/**********************************************************************************
-		\end scheduling activities. 
+		\end scheduling activities
 	**********************************************************************************/
 
 
 	/* Set Timer */
-    timer.it_value.tv_sec 		= 0;			// Time remaining until next expiration (sec)
+    timer.it_value.tv_sec 		= 2;			// Time remaining until next expiration (sec)
     timer.it_value.tv_usec 		= TIME_QUANTUM;	// "" (50 ms)
     timer.it_interval.tv_sec 	= 0;			// Interval for periodic timer (sec)
     timer.it_interval.tv_usec 	= 0;			// "" (microseconds)
@@ -224,14 +214,18 @@ void ___debugging_thread_unit_lib(){
 
 int main(){
 
-	// scheduler_init();
+	getcontext(&main_context);
+
+
+
+	scheduler_init();
 
 	// while(1){
 	// 	//printf("I'm spinning \n");
 	// 	wait();
 	// }
 
-	___debugging_thread_unit_lib();
+	// ___debugging_thread_unit_lib();
 
 
 }
