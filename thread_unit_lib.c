@@ -110,3 +110,45 @@ int thread_list_isempty(thread_unit_list* list){
 	}
 }
 
+
+const char* _stringify_state(state s){
+
+	switch(s)
+	{
+		case EMBRYO: 		return "EMBRYO";
+		case READY: 		return "READY";
+		case RUNNING: 		return "RUNNING";
+		case WAITING: 		return "WAITING";
+		case TERMINATED: 	return "TERMINATED";
+		case ZOMBIE: 		return "ZOMBIE";
+		default: 			return "UNKNOWN STATE";
+	}
+
+}
+
+
+/* DEBUGGING ONLY: Print out thread unit */
+void _print_thread_unit(thread_unit* unit){
+	printf("TheadID: %i \t State: %s \t Run count: %i\n", unit->thread->threadID, _stringify_state(unit->state), unit->run_count);
+}
+
+
+/* DEBUGGING ONLY: Print out thread list */
+void _print_thread_list(thread_unit_list* list){
+
+	thread_unit* temp;
+
+	if(!thread_list_isempty(list)){
+		temp = list->head;
+
+		while(temp->next != NULL){
+			_print_thread_unit(temp);
+
+			temp = temp->next;
+		}
+
+	}else{
+		printf("Empty thread unit list. \n");
+	}
+
+}
