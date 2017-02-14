@@ -6,6 +6,7 @@
 ************************************************************************************************************/
 
 #include "my_pthread_t.h"
+#include "thread_unit_lib.h" 	
 
 static scheduler_t* scheduler;
 
@@ -53,6 +54,20 @@ void scheduler_init(){
 		Initialize scheduler structures  
     **********************************************************************************/
 
+
+
+
+	/* 
+		Things that need to be initialized 
+			scheduler_t scheduler
+				priority_array
+				mutex_list
+				running
+				waiting
+				scheduler_ucontext
+				main_ucontext
+
+	*/
 
 
     /**********************************************************************************
@@ -120,12 +135,13 @@ void scheduler_sig_handler(){
 
 int main(){
 
-	scheduler_init();
+	// scheduler_init();
 
-	while(1){
-		//printf("I'm spinning \n");
-		wait();
-	}
+	// while(1){
+	// 	//printf("I'm spinning \n");
+	// 	wait();
+	// }
+
 
 
 }

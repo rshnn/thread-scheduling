@@ -19,10 +19,10 @@
 #include <ucontext.h>
 
 
-#define PAGE_SIZE 4096							// Stack size defaults to page size
-#define PRIORITY_LEVELS 5						// Number of priority levels
-#define TIME_QUANTUM 50000                      // 50 ms = 50000 us  
-#define MAINTENENCE_TIME 10*TIME_QUANTUM		// Experimental value 
+#define PAGE_SIZE 			4096					// Stack size defaults to page size
+#define PRIORITY_LEVELS 	5						// Number of priority levels
+#define TIME_QUANTUM 		50000 					// 50 ms = 50000 us  
+#define MAINTENENCE_TIME 	10*TIME_QUANTUM			// Experimental value 
 
 
 /************************************************************************************************************
@@ -120,7 +120,7 @@ typedef struct thread_unit_list_ {
 	struct thread_unit_* 		tail;
 	int 						size;
 
-}thread_unit_list_;
+}thread_unit_list;
 
 
 
@@ -153,6 +153,7 @@ typedef struct mutex_node_ {
 */
 typedef struct scheduler_t {
     
+    int 						initialized;
     struct thread_unit_list_ 	priority_array[PRIORITY_LEVELS];
     struct mutex_node_* 		mutex_list;
     struct thread_unit_list_	running;

@@ -7,7 +7,7 @@ CC = gcc
 CFLAGS 		= -m32 -O0
 DEBUGGER 	= -g
 
-SOURCE 		= my_pthread_t.h my_pthread_t.c
+SOURCE 		= my_pthread_t.h my_pthread_t.c thread_unit_lib.h thread_unit_lib.c
 TARGET 		= my_pthread_t
 
 
