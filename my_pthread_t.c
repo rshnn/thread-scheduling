@@ -152,12 +152,14 @@ void ___debugging_thread_unit_lib(){
 
 	// rshnn Tue 14 Feb 2017 12:20:09 PM EST
 
+	printf("Debugging thread_unit_lib...\n\n");
+
 	int i = 0;
 	my_pthread_t* 		pthread_arr[10];
 	thread_unit* 		unit_arr[10];
 	thread_unit_list* 	list =  thread_list_init();
 
-	while(i != 10){
+	while(i <= 10){
 
 		pthread_arr[i] = (my_pthread_t*)malloc(sizeof(my_pthread_t));
 		pthread_arr[i]->threadID = i;		
@@ -169,10 +171,47 @@ void ___debugging_thread_unit_lib(){
 		i++;
 	}
 
-
+	printf("\nShould show ID's 0 to 10\n");
 	_print_thread_list(list);
 
 
+	/* Pops off head.  Threads 0 to 3 removed */
+	thread_list_dequeue(list);
+	thread_list_dequeue(list);
+	thread_list_dequeue(list);
+	thread_list_dequeue(list);
+
+	/* Peek head.  Should not alter list. */
+	printf("\nPeeking.  Should show thread 4:\n");
+	_print_thread_unit(thread_list_peek(list));
+
+
+	/* Add new thread to queue (ID = 99) */
+	my_pthread_t* temp = (my_pthread_t*)malloc(sizeof(my_pthread_t));
+	temp->threadID = 99;
+	thread_unit* tempunit = thread_unit_init(temp);
+	thread_list_enqueue(list, tempunit);
+
+
+	/* List should have the following IDs:  4, 5, 6, 7, 8, 9, 10, 99 */
+	printf("\nShould show the following IDs: 4, 5, 6, 7, 8, 9, 10, 99\n");
+	_print_thread_list(list);
+
+
+	/* Dequeue all thread_units off the list */
+	for(i=0; i<=8; i++){
+		thread_list_dequeue(list);
+	}
+	printf("\nShould show empty list: \n");
+	_print_thread_list(list);
+
+
+
+	/* Add  ID 99 and 5 back to queue */
+	thread_list_enqueue(list, tempunit);
+	thread_list_enqueue(list, unit_arr[5]);
+	printf("\nShould show only thread 99: \n");
+	_print_thread_list(list);
 
 
 }

@@ -36,7 +36,7 @@
 */
 typedef struct my_pthread_t {
 
-    unsigned int        threadID;
+    long int 	threadID;
 	void *              return_val;
 	int                 priority;
 

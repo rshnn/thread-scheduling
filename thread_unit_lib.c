@@ -60,10 +60,13 @@ thread_unit_list* thread_list_init(){
 /* New thread_units added to the end of the queue */
 void thread_list_enqueue(thread_unit_list* list, thread_unit* unit){
 
+	/* Clear node->next */
+	unit->next = NULL;
+
 	// Enqueue on an empty list
 	if(list->size == 0){
-		list->head = unit;
-		list->tail = unit;
+		list->head 			= unit;
+		list->tail 			= unit;
 
 	// Default: Add at end and redirect tail
 	}else{
@@ -155,7 +158,7 @@ const char* _stringify_state(state s){
 
 /* DEBUGGING ONLY: Print out thread unit */
 void _print_thread_unit(thread_unit* unit){
-	printf("TheadID: %i \t State: %s \t Run count: %i\n", unit->thread->threadID, _stringify_state(unit->state), unit->run_count);
+	printf("TheadID: %ld \t State: %s \t Run count: %i\n", unit->thread->threadID, _stringify_state(unit->state), unit->run_count);
 }
 
 
@@ -167,7 +170,7 @@ void _print_thread_list(thread_unit_list* list){
 	if(!thread_list_isempty(list)){
 		temp = list->head;
 
-		while(temp->next != NULL){
+		while(temp != NULL){
 			_print_thread_unit(temp);
 
 			temp = temp->next;
