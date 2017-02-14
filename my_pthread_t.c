@@ -55,8 +55,6 @@ void scheduler_init(){
     **********************************************************************************/
 
 
-
-
 	/* 
 		Things that need to be initialized 
 			scheduler_t scheduler

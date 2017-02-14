@@ -12,20 +12,14 @@
 #include "my_pthread_t.h"
 
 
-thread_unit thread_unit_init();
+thread_unit* thread_unit_init(my_pthread_t* pthread);
 
 
-void thread_list_init(thread_unit_list* thread_ptr);
-
-void thread_list_enqueue(thread_unit_list* thread_list, thread_unit* unit);
-
-void thread_list_dequeue(thread_unit_list* thread_list);
-
-thread_unit thread_list_peek(thread_unit_list* thread_list);
-
-thread_unit thread_list_isempty(thread_unit_list* thread_list);
-
-void test();
+thread_unit_list* thread_list_init();
+void thread_list_enqueue(thread_unit_list* list, thread_unit* unit);
+thread_unit* thread_list_dequeue(thread_unit_list* list);
+thread_unit* thread_list_peek(thread_unit_list* list);
+int thread_list_isempty(thread_unit_list* list);
 
 
 #endif

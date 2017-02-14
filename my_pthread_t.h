@@ -99,7 +99,7 @@ typedef enum state_ {
 typedef struct thread_unit_ {
     
     my_pthread_t*       		thread;
-    ucontext_t          		context;
+    ucontext_t*         		ucontext;
     state               		state;          // NOTE: do we need to keep info on why its waiting here?
 	int                 		time_slice;
 	int                 		run_count;

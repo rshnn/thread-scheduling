@@ -9,17 +9,104 @@
 
 
 
+/* Intializes a thread_unit structure. */
+thread_unit* thread_unit_init(my_pthread_t* pthread){
 
-thread_unit thread_unit_init(){}
+	thread_unit* tu = (thread_unit *)malloc(sizeof(thread_unit)); 
+
+	tu->thread 			= pthread;
+	tu->ucontext 		= NULL;
+	tu->state 			= EMBRYO;
+	tu->time_slice 		= TIME_QUANTUM;
+	tu->run_count 		= 0;
+	tu->waiting_on_me 	= NULL;
+	tu->next 			= NULL;
+
+	return tu;
+}
+
+/* Initialize an empty thread_unit_list */
+thread_unit_list* thread_list_init(){
+
+	thread_unit_list* thread_list = (thread_unit_list*)malloc(sizeof(thread_unit_list));
+
+	thread_list->head 	= NULL;
+	thread_list->tail 	= NULL;
+	thread_list->size 	= 0;
+
+	return thread_list;
+}
 
 
-void thread_list_init(thread_unit_list* thread_ptr){}
 
-void thread_list_enqueue(thread_unit_list* thread_list, thread_unit* unit){}
+/* New thread_units added to the end of the queue */
+void thread_list_enqueue(thread_unit_list* list, thread_unit* unit){
 
-void thread_list_dequeue(thread_unit_list* thread_list){}
+	// Enqueue on an empty list
+	if(list->size == 0){
+		list->head = unit;
+		list->tail = unit;
 
-thread_unit thread_list_peek(thread_unit_list* thread_list){}
+	// Default: Add at end and redirect tail
+	}else{
+		list->tail->next	= unit;
+		list->tail 			= unit;
+	}
 
-thread_unit thread_list_isempty(thread_unit_list* thread_list){}
+	list->size++;
+}
+
+
+
+thread_unit* thread_list_dequeue(thread_unit_list* list){
+
+	/* Empty list -- Return NULL */
+	if(thread_list_isempty(list)){
+		return NULL;
+	}
+
+	thread_unit* deq_unit;
+
+	/* One item list */
+	if(list->size == 1){
+
+		deq_unit 	= list->head; 
+		list->head 	= NULL;
+		list->tail 	= NULL; 
+
+	/* Default: return unit at head.  Move head. */
+	}else{
+
+		deq_unit 		= list->head;
+		list->head 		= list->head->next;
+	
+	}
+
+	list->size--;
+	return deq_unit;
+
+}
+
+
+/* Peek at head if list is not empty */
+thread_unit* thread_list_peek(thread_unit_list* list){
+
+	if(thread_list_isempty(list)){
+		return NULL;
+	}else{
+		return list->head;
+	}
+
+}
+
+
+/* Returns if list is emtpy (0 false || 1 true) */
+int thread_list_isempty(thread_unit_list* list){
+
+	if(list->size == 0){
+		return 1;
+	}else{
+		return 0;
+	}
+}
 
