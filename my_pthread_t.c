@@ -12,13 +12,24 @@ static scheduler_t* scheduler;
 
 
 
-/* my_pthread core library */
+/************************************************************************************************************
+*
+*    MY_PTHREAD CORE LIBRARY 
+*
+************************************************************************************************************/
+
 int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*function)(void*), void * arg){}
 void my_pthread_yield(){}
 void pthread_exit(void *value_ptr){}
 int my_pthread_join(my_pthread_t thread, void **value_ptr){}
 
-/* my_pthread mutex library */
+
+/************************************************************************************************************
+*
+*    MY_PTHREAD_MUTEX LIBRARY 
+*
+************************************************************************************************************/
+
 int my_pthread_mutex_init(my_pthread_mutex_t *mutex, const my_pthread_mutexattr_t *mutexattr){}
 int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){}
 int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){}
@@ -130,6 +141,45 @@ void scheduler_sig_handler(){
 
 
 
+/************************************************************************************************************
+*
+*    DEBUGGING / TESTING
+*
+************************************************************************************************************/
+
+void ___debugging_thread_unit_lib(){
+	
+
+	// rshnn Tue 14 Feb 2017 12:20:09 PM EST
+
+	int i = 0;
+	my_pthread_t* 		pthread_arr[10];
+	thread_unit* 		unit_arr[10];
+	thread_unit_list* 	list =  thread_list_init();
+
+	while(i != 10){
+
+		pthread_arr[i] = (my_pthread_t*)malloc(sizeof(my_pthread_t));
+		pthread_arr[i]->threadID = i;		
+		unit_arr[i] = thread_unit_init(pthread_arr[i]);
+		// _print_thread_unit(unit_arr[i]);
+
+		thread_list_enqueue(list, unit_arr[i]);
+
+		i++;
+	}
+
+
+	_print_thread_list(list);
+
+
+
+
+}
+
+
+
+
 
 int main(){
 
@@ -140,6 +190,7 @@ int main(){
 	// 	wait();
 	// }
 
+	___debugging_thread_unit_lib();
 
 
 }

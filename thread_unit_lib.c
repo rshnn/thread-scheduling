@@ -8,8 +8,14 @@
 #include "thread_unit_lib.h"
 
 
+/************************************************************************************************************
+*
+*    THREAD_UNIT LIBRARY
+*
+************************************************************************************************************/
 
-/* Intializes a thread_unit structure. */
+
+/* Initializes a thread_unit structure. Expects a well-formed my_pthread data structure */
 thread_unit* thread_unit_init(my_pthread_t* pthread){
 
 	thread_unit* tu = (thread_unit *)malloc(sizeof(thread_unit)); 
@@ -24,6 +30,18 @@ thread_unit* thread_unit_init(my_pthread_t* pthread){
 
 	return tu;
 }
+
+
+
+
+
+/************************************************************************************************************
+*
+*    THREAD_UNIT_LIST FUNCTIONS (LINKED LIST LIBRARY)
+*
+************************************************************************************************************/
+
+
 
 /* Initialize an empty thread_unit_list */
 thread_unit_list* thread_list_init(){
@@ -111,6 +129,14 @@ int thread_list_isempty(thread_unit_list* list){
 }
 
 
+
+/************************************************************************************************************
+*
+*    DEBUGGING FUNCTIONS
+*
+************************************************************************************************************/
+
+/* DEBUGGING ONLY:  Turns enum state into strings for printing*/
 const char* _stringify_state(state s){
 
 	switch(s)
