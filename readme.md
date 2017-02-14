@@ -6,6 +6,19 @@ cs-518 osdesign
 
 ## dev-notes
 
+### rshn Tue 14 Feb 2017 08:18:33 AM EST
+
+Can use the following to redirect the signal handler   
+This might be cool to use in `scheduler_init()` if we want to go to another handler in the begining to do some workbefore scheduler_sig_handler is defaultly used.  
+
+```
+signal_action.sa_flags            = SA_SIGINFO; 
+signal_action.sa_sigaction        = another_signal_handler;
+```
+
+
+Idunno, sounded cool.  Might not be useful.  
+
 ### rshnn Mon 13 Feb 2017 09:16:47 AM EST
 
 Meeting Notes | Sunday 2016.02.12

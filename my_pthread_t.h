@@ -9,7 +9,7 @@
 #ifndef MY_PTHREAD_T_H
 #define MY_PTHREAD_T_H 
 
-
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -19,10 +19,10 @@
 #include <ucontext.h>
 
 
-#define PAGE_SIZE 4096
-#define PRIORITY_LEVELS 5
-#define TIME_QUANTUM 50000                      // 50 ms 
-#define MAINTENENCE_TIME 10*TIME_QUANTUM
+#define PAGE_SIZE 4096							// Stack size defaults to page size
+#define PRIORITY_LEVELS 5						// Number of priority levels
+#define TIME_QUANTUM 50000                      // 50 ms = 50000 us  
+#define MAINTENENCE_TIME 10*TIME_QUANTUM		// Experimental value 
 
 
 /************************************************************************************************************
@@ -151,7 +151,7 @@ typedef struct mutex_node_ {
 		Contains two queues of thread_units:  running and waiting 
 		Stores ucontexts of main thread and scheduler thread
 */
-typedef struct scheduler_ {
+typedef struct scheduler_t {
     
     struct thread_unit_list_ 	priority_array[PRIORITY_LEVELS];
     struct mutex_node_* 		mutex_list;
@@ -160,7 +160,7 @@ typedef struct scheduler_ {
     ucontext_t 					scheduler_ucontext;
     ucontext_t					main_ucontext;
 
-}scheduler;
+}scheduler_t;
 
 
 
@@ -190,7 +190,7 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex);
 
 /* scheduler library */
 void scheduler_init();
-void scheduler_sig_handler(int signum);
+void scheduler_sig_handler();
 
 
 // /* global vars go in .c file */

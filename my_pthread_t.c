@@ -7,7 +7,7 @@
 
 #include "my_pthread_t.h"
 
-static scheduler* scheduler;
+static scheduler_t* scheduler;
 
 
 
@@ -32,16 +32,86 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){}
 
 void scheduler_init(){
 
-	/* Initialize timer signal handler */
 
+
+    /**********************************************************************************
+		Initialize timer signal handler  
+    **********************************************************************************/
+
+	struct sigaction signal_action;
+	sigemptyset(&signal_action.sa_mask);
+
+	if(sigaction(SIGSEGV, &signal_action, NULL) == -1){
+		printf("Failure to initialize signal handler.\n");
+		exit(EXIT_FAILURE);
+	}
+
+
+
+
+    /**********************************************************************************
+		Initialize scheduler structures  
+    **********************************************************************************/
+
+
+
+    /**********************************************************************************
+		....
+    **********************************************************************************/
+
+
+
+
+
+
+
+
+
+
+
+
+	/* Direct sig-alarms to scheduler_sig_handler */
+	signal(SIGALRM, &scheduler_sig_handler);
+	scheduler_sig_handler();
 
 };
 
-void scheduler_sig_handler(int signum){
+void scheduler_sig_handler(){
 
-	print("%i\n", signum);
+	struct itimerval timer;
+
+
+	/* Pause Timer */
+    timer.it_value.tv_sec 		= 0;	// Time remaining until next expiration (sec)
+    timer.it_value.tv_usec 		= 0;	// "" (microseconds)
+    timer.it_interval.tv_sec 	= 0;	// Interval for periodic timer (sec)
+    timer.it_interval.tv_usec 	= 0;	// "" (microseconds)
+    setitimer(ITIMER_REAL, &timer, NULL);
+
+
+    /**********************************************************************************
+		scheduler activities start
+    **********************************************************************************/
+
+    printf("Hi im doing scheduling things every %i microseconds. \n", TIME_QUANTUM);
+	
+
+	/**********************************************************************************
+		\end scheduling activities. 
+	**********************************************************************************/
+
+
+	/* Set Timer */
+    timer.it_value.tv_sec 		= 0;			// Time remaining until next expiration (sec)
+    timer.it_value.tv_usec 		= TIME_QUANTUM;	// "" (50 ms)
+    timer.it_interval.tv_sec 	= 0;			// Interval for periodic timer (sec)
+    timer.it_interval.tv_usec 	= 0;			// "" (microseconds)
+    setitimer(ITIMER_REAL, &timer, NULL);
+
+
+    return;
 };
-
+	
 
 
 
@@ -50,6 +120,12 @@ void scheduler_sig_handler(int signum){
 
 int main(){
 
-	printf("test print.\n");
+	scheduler_init();
+
+	while(1){
+		//printf("I'm spinning \n");
+		wait();
+	}
+
 
 }
