@@ -9,8 +9,8 @@
 #include "thread_unit_lib.h" 	
 
 static scheduler_t* scheduler;
-static ucontext_t main_context;
-static ucontext_t scheduler_context;
+static ucontext_t* 	main_ucontext;
+static ucontext_t* 	scheduler_ucontext;
 
 /************************************************************************************************************
 *
@@ -18,7 +18,45 @@ static ucontext_t scheduler_context;
 *
 ************************************************************************************************************/
 
-int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*function)(void*), void * arg){}
+int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*function)(void*), void * arg){
+
+	/* 
+		my_pthread_t has already been malloced 
+	*/
+
+	/* Init thread_unit for this pthread */
+	thread_unit* new_unit 	= (thread_unit*)malloc(sizeof(thread_unit));
+	new_unit 				= thread_unit_init(thread);	
+	
+
+
+    /**********************************************************************************
+		UCONTEXT SETUP  (TODO: put this into a helper function)  
+    **********************************************************************************/
+
+	/* copy (fork) the current ucontext */
+	if(getcontext(new_unit->ucontext) == -1){
+		printf("Error obtaining ucontext of thread");
+		exit(-1);
+	} 
+
+	/* Set up ucontext stack */
+	new_unit->ucontext->uc_stack.ss_sp 		= malloc(PAGE_SIZE);
+	new_unit->ucontext->uc_stack.ss_size 	= PAGE_SIZE;
+		/* wtf is happening here^?  I found this online somewhere.  Is it working?*/
+
+
+	/* Set uc_link to point to addr of scheduler_ucontext */
+	new_unit->ucontext->uc_link 			= scheduler_ucontext;
+
+	/* Assign func* to ucontext */
+	makecontext(new_unit->ucontext, (void*)function, 1, arg); 		// Should we write a separate scheduler_run_thread call?
+    
+    /**********************************************************************************/
+
+
+
+}
 void my_pthread_yield(){}
 void pthread_exit(void *value_ptr){}
 int my_pthread_join(my_pthread_t thread, void **value_ptr){}
@@ -46,8 +84,6 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){}
 
 void scheduler_init(){
 
-
-
     /**********************************************************************************
 		Initialize scheduler structures  
     **********************************************************************************/
@@ -65,6 +101,38 @@ void scheduler_init(){
 	scheduler->running = thread_list_init();
 	scheduler->waiting = thread_list_init();
 	
+
+
+	/* TODO: build ucontext of the scheduler (func* to scheduler_sig_handler) */
+    /**********************************************************************************
+		UCONTEXT SETUP  (TODO: put this into a helper function)  
+    **********************************************************************************/
+
+	scheduler_ucontext = (ucontext_t*)malloc(sizeof(ucontext_t));
+
+	/* copy (fork) the current ucontext */
+	if(getcontext(scheduler_ucontext) == -1){
+		printf("Error obtaining ucontext of scheduler");
+		exit(-1);
+	} 
+
+	/* Set up ucontext stack */
+	scheduler_ucontext->uc_stack.ss_sp 		= malloc(PAGE_SIZE);
+	scheduler_ucontext->uc_stack.ss_size 	= PAGE_SIZE;
+		/* wtf is happening here^?  I found this online somewhere.  Is it working?*/
+
+
+	/* Set uc_link to point to addr of scheduler_ucontext */
+	scheduler_ucontext->uc_link 			= main_ucontext;
+
+	/* Assign func* to ucontext */
+	makecontext(scheduler_ucontext, (void*)scheduler_sig_handler, 1, NULL); 		// Should we write a separate scheduler_run_thread call?
+    
+    /**********************************************************************************/
+
+
+
+
 
 	scheduler->initialized = 1;
 
@@ -93,7 +161,6 @@ void scheduler_init(){
 void scheduler_sig_handler(){
 
 	struct itimerval timer;
-
 
 	/* Pause Timer */
     timer.it_value.tv_sec 		= 0;	// Time remaining until next expiration (sec)
@@ -141,7 +208,7 @@ void scheduler_sig_handler(){
 	Tests the thread_unit library.  
 	Stresses the thread_unit_list linked list structure  
 */
-void ___debugging_thread_unit_lib(){
+void _debugging_thread_unit_lib(){
 	
 
 	// rshnn Tue 14 Feb 2017 12:20:09 PM EST
@@ -214,9 +281,6 @@ void ___debugging_thread_unit_lib(){
 
 int main(){
 
-	getcontext(&main_context);
-
-
 
 	scheduler_init();
 
@@ -225,7 +289,7 @@ int main(){
 	// 	wait();
 	// }
 
-	// ___debugging_thread_unit_lib();
+	// _debugging_thread_unit_lib();
 
 
 }

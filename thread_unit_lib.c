@@ -21,7 +21,7 @@ thread_unit* thread_unit_init(my_pthread_t* pthread){
 	thread_unit* tu = (thread_unit *)malloc(sizeof(thread_unit)); 
 
 	tu->thread 			= pthread;
-	tu->ucontext 		= NULL;
+	tu->ucontext 		= NULL;			// replace with fake NULL context
 	tu->state 			= EMBRYO;
 	tu->time_slice 		= TIME_QUANTUM;
 	tu->run_count 		= 0;
