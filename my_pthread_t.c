@@ -25,7 +25,7 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 	*/
 
 	/* Init thread_unit for this pthread */
-	new_unit 				= thread_unit_init(thread);			//thread_unit_init() mallocs
+	thread_unit* new_unit 				= thread_unit_init(thread);			//thread_unit_init() mallocs
 	
 
 
@@ -40,7 +40,9 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 	} 
 
 	/* Set up ucontext stack */
-	new_unit->ucontext->uc_stack.ss_sp 		= malloc(PAGE_SIZE);
+	if((new_unit->ucontext->uc_stack.ss_sp = malloc(PAGE_SIZE))==NULL){
+		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
+	}
 	new_unit->ucontext->uc_stack.ss_size 	= PAGE_SIZE;
 		/* wtf is happening here^?  I found this online somewhere.  Is it working?*/
 
@@ -89,7 +91,10 @@ void scheduler_init(){
 
 	int i;
 
-	scheduler = (scheduler_t*)malloc(sizeof(scheduler_t));
+	/* Attempt to malloc space for scheduler */
+	if ((scheduler = (scheduler_t*)malloc(sizeof(scheduler_t))) == NULL){
+		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
+	}
 
 	/* Initialize each priority queue (thread_unit_list) */
 	for(i = 0; i<= PRIORITY_LEVELS; i++){
@@ -107,7 +112,10 @@ void scheduler_init(){
 		UCONTEXT SETUP   
     **********************************************************************************/
 
-	scheduler_ucontext = (ucontext_t*)malloc(sizeof(ucontext_t));
+	/* Attempt to malloc space for scheduler_ucontext */
+	if ((scheduler_ucontext = (ucontext_t*)malloc(sizeof(ucontext_t))) == NULL){
+		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
+	}
 
 	/* copy (fork) the current ucontext */
 	if(getcontext(scheduler_ucontext) == -1){
@@ -116,8 +124,11 @@ void scheduler_init(){
 	} 
 
 	/* Set up ucontext stack */
-	scheduler_ucontext->uc_stack.ss_sp 		= malloc(PAGE_SIZE);
+	if((scheduler_ucontext->uc_stack.ss_sp = malloc(PAGE_SIZE))==NULL){
+		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
+	}
 	scheduler_ucontext->uc_stack.ss_size 	= PAGE_SIZE;
+	scheduler_ucontext->uc_stack.ss_flags 	= 0;
 		/* wtf is happening here^?  I found this online somewhere.  Is it working?*/
 
 
@@ -192,11 +203,6 @@ void scheduler_sig_handler(){
     return;
 };
 	
-ucontext_t* ucontext_init(ucontext_t* ucontext, ){
-
-}
-
-
 
 
 /************************************************************************************************************

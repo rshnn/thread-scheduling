@@ -18,7 +18,11 @@
 /* Initializes a thread_unit structure. Expects a well-formed my_pthread data structure */
 thread_unit* thread_unit_init(my_pthread_t* pthread){
 
-	thread_unit* tu = (thread_unit *)malloc(sizeof(thread_unit)); 
+	thread_unit* tu;
+
+	if ((tu = (thread_unit *)malloc(sizeof(thread_unit))) == NULL){
+		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
+	}
 
 	tu->thread 			= pthread;
 	tu->ucontext 		= NULL;			// replace with fake NULL context
@@ -46,8 +50,12 @@ thread_unit* thread_unit_init(my_pthread_t* pthread){
 /* Initialize an empty thread_unit_list */
 thread_unit_list* thread_list_init(){
 
-	thread_unit_list* thread_list = (thread_unit_list*)malloc(sizeof(thread_unit_list));
+	thread_unit_list* thread_list;
 
+	if ((thread_list = (thread_unit_list*)malloc(sizeof(thread_unit_list))) == NULL){
+		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
+	}
+	
 	thread_list->head 	= NULL;
 	thread_list->tail 	= NULL;
 	thread_list->size 	= 0;
@@ -154,6 +162,7 @@ const char* _stringify_state(state s){
 	}
 
 }
+
 
 
 /* DEBUGGING ONLY: Print out thread unit */
