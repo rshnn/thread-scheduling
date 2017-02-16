@@ -363,6 +363,8 @@ int main(){
 
 	_print_thread_list(scheduler->priority_array[0]);
 
+	scheduler_runThread(scheduler->priority_array[0]->head);
+
 
 	// while(1){
 	// 	//printf("I'm spinning \n");
