@@ -25,8 +25,7 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 	*/
 
 	/* Init thread_unit for this pthread */
-	thread_unit* new_unit 	= (thread_unit*)malloc(sizeof(thread_unit));
-	new_unit 				= thread_unit_init(thread);	
+	new_unit 				= thread_unit_init(thread);			//thread_unit_init() mallocs
 	
 
 
@@ -94,7 +93,7 @@ void scheduler_init(){
 
 	/* Initialize each priority queue (thread_unit_list) */
 	for(i = 0; i<= PRIORITY_LEVELS; i++){
-		scheduler->priority_array[i] = thread_list_init();	// thread_list_init() does mallocing
+		scheduler->priority_array[i] = thread_list_init();	// thread_list_init() mallocs
 	}
 
 	/* Initialize the currently running and waiting queues */
@@ -105,7 +104,7 @@ void scheduler_init(){
 
 	/* TODO: build ucontext of the scheduler (func* to scheduler_sig_handler) */
     /**********************************************************************************
-		UCONTEXT SETUP  (TODO: put this into a helper function)  
+		UCONTEXT SETUP   
     **********************************************************************************/
 
 	scheduler_ucontext = (ucontext_t*)malloc(sizeof(ucontext_t));
@@ -126,7 +125,7 @@ void scheduler_init(){
 	scheduler_ucontext->uc_link 			= main_ucontext;
 
 	/* Assign func* to ucontext */
-	makecontext(scheduler_ucontext, (void*)scheduler_sig_handler, 1, NULL); 		// Should we write a separate scheduler_run_thread call?
+	makecontext(scheduler_ucontext, (void*)scheduler_sig_handler, 1, NULL); 	// Should we write a separate scheduler_run_thread call?
     
     /**********************************************************************************/
 
@@ -193,7 +192,9 @@ void scheduler_sig_handler(){
     return;
 };
 	
+ucontext_t* ucontext_init(ucontext_t* ucontext, ){
 
+}
 
 
 
