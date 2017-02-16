@@ -216,11 +216,17 @@ void scheduler_sig_handler(){
     /**********************************************************************************
 		scheduler activities start
     **********************************************************************************/
-
-    	
-
-    printf("Hi im doing scheduling things every %i microseconds. \n", TIME_QUANTUM);
-	
+    
+    if(scheduler->currently_running != NULL){
+    	printf(ANSI_COLOR_MAGENTA "Scheduler Signal Handler:\n\tThread %ld just ran for %i microseconds.\n" 
+    			ANSI_COLOR_RESET, 
+    			scheduler->currently_running->thread->threadID, 
+    			scheduler->currently_running->time_slice);
+		
+    }else{
+    	printf(ANSI_COLOR_MAGENTA "Scheduler Signal Handler:\n\tNo thread have run yet.\n\n" ANSI_COLOR_RESET);
+    }
+    
 
 
 
@@ -339,22 +345,20 @@ void _debugging_thread_unit_lib(){
 }
 
 
-void _debugging_pthread_init(){
-
-}
-
+/*
+	Function for testing
+*/
 void f1(int x){
-	printf("In f1!  %i\n", x);
+	printf("Executing f1:\tArg is %i\n", x);
 	return;
 }
 
 
-int main(){
-
-
-	scheduler_init();
-
-
+/* 
+	Tests the pthread_create() function 
+*/
+void _debugging_pthread_create(){
+	
 	my_pthread_t* testing = (my_pthread_t*)malloc(sizeof(my_pthread_t));
 	my_pthread_attr_t* nonesense; 
 
@@ -366,6 +370,17 @@ int main(){
 	scheduler_runThread(scheduler->priority_array[0]->head);
 
 
+
+}
+
+
+int main(){
+
+
+	scheduler_init();
+
+
+
 	// while(1){
 	// 	//printf("I'm spinning \n");
 	// 	wait();
@@ -373,5 +388,7 @@ int main(){
 
 	// _debugging_thread_unit_lib();
 
+
+	_debugging_pthread_create();
 
 }

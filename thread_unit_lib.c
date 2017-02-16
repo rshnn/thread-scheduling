@@ -172,7 +172,8 @@ const char* _stringify_state(state s){
 
 /* DEBUGGING ONLY: Print out thread unit */
 void _print_thread_unit(thread_unit* unit){
-	printf("TheadID: %ld \t State: %s \t Run count: %i\n", unit->thread->threadID, _stringify_state(unit->state), unit->run_count);
+	printf(ANSI_COLOR_CYAN "TheadID: %ld \t State: %s \t Run count: %i\n" ANSI_COLOR_RESET,
+	 unit->thread->threadID, _stringify_state(unit->state), unit->run_count);
 }
 
 
@@ -191,7 +192,7 @@ void _print_thread_list(thread_unit_list* list){
 		}
 
 	}else{
-		printf("Empty thread unit list. \n");
+		printf(ANSI_COLOR_CYAN "Empty thread unit list. \n" ANSI_COLOR_RESET);
 	}
 
 }
