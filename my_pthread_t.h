@@ -154,8 +154,10 @@ typedef struct mutex_node_ {
 typedef struct scheduler_t {
     
     int 						initialized;
+    int 						threadID_count;
     struct thread_unit_list_* 	priority_array[PRIORITY_LEVELS];
     struct mutex_node_* 		mutex_list;
+    struct thread_unit_* 		currently_running;
     struct thread_unit_list_*	running;
     struct thread_unit_list_*	waiting;
     ucontext_t 					scheduler_ucontext;	// Turn this into a thread_unit?

@@ -20,17 +20,31 @@ static ucontext_t* 	scheduler_ucontext;
 
 int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*function)(void*), void * arg){
 
+	/**********************************************************************************
+		PTHREAD_T & THREAD_UNIT SETUP   
+    **********************************************************************************/
+
 	/* 
-		my_pthread_t has already been malloced 
+		has my_pthread_t has already been malloced (????)  Assuming it has been malloced already. 
+			Assume an empty pthread_t that needs to be populated with defaults enters  
 	*/
+
+	thread->threadID = scheduler->threadID_count;
+	scheduler->threadID_count++;
+
+	thread->return_val = NULL;
+
+	/* Assign to highest priority (new threads enter highest priority queue) */
+	thread->priority = 0;
+
 
 	/* Init thread_unit for this pthread */
 	thread_unit* new_unit 				= thread_unit_init(thread);			//thread_unit_init() mallocs
-	
+	new_unit->waiting_on_me 			= thread_list_init();
 
 
     /**********************************************************************************
-		UCONTEXT SETUP  (TODO: put this into a helper function)  
+		UCONTEXT SETUP   
     **********************************************************************************/
 
 	/* copy (fork) the current ucontext */
@@ -47,17 +61,33 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 		/* wtf is happening here^?  I found this online somewhere.  Is it working?*/
 
 
-	/* Set uc_link to point to addr of scheduler_ucontext */
+	/* Set uc_link to point to addr of scheduler's ucontext */
 	new_unit->ucontext->uc_link 			= scheduler_ucontext;
 
 	/* Assign func* to ucontext */
-	makecontext(new_unit->ucontext, (void*)function, 1, arg); 		// Should we write a separate scheduler_run_thread call?
+	makecontext(new_unit->ucontext, (void*)function, 1, arg); 		
+	// Should we write a separate scheduler_run_thread call?
     
-    /**********************************************************************************/
 
 
+    /**********************************************************************************
+		SCHEDULE THAT SHIT    
+    **********************************************************************************/
+	// into highest priority bc heuristics say so 
 
+	thread_list_enqueue(scheduler->priority_array[0], new_unit);
+	
+
+	/*
+		By the end of my_pthread_create():
+			The incoming pthread ptr will be populated with defaults
+			That pthread will be put into a thread_unit_t
+			That thread_unit_t's ucontext will be populated 
+			That thread_unit will be enqueued into the priority 0 thread list. 
+	*/
 }
+
+
 void my_pthread_yield(){}
 void pthread_exit(void *value_ptr){}
 int my_pthread_join(my_pthread_t thread, void **value_ptr){}
@@ -95,6 +125,9 @@ void scheduler_init(){
 	if ((scheduler = (scheduler_t*)malloc(sizeof(scheduler_t))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 	}
+
+	scheduler->threadID_count 		= 2;	// Reserve 0 and 1 for scheduler and main threads (just in case)
+	scheduler->currently_running 	= NULL;
 
 	/* Initialize each priority queue (thread_unit_list) */
 	for(i = 0; i<= PRIORITY_LEVELS; i++){
@@ -166,7 +199,7 @@ void scheduler_init(){
 	signal(SIGALRM, &scheduler_sig_handler);
 	scheduler_sig_handler();
 
-};
+}
 
 void scheduler_sig_handler(){
 
@@ -184,8 +217,14 @@ void scheduler_sig_handler(){
 		scheduler activities start
     **********************************************************************************/
 
+    	
+
     printf("Hi im doing scheduling things every %i microseconds. \n", TIME_QUANTUM);
 	
+
+
+
+
 
 	/**********************************************************************************
 		\end scheduling activities
@@ -194,14 +233,31 @@ void scheduler_sig_handler(){
 
 	/* Set Timer */
     timer.it_value.tv_sec 		= 2;			// Time remaining until next expiration (sec)
-    timer.it_value.tv_usec 		= TIME_QUANTUM;	// "" (50 ms)
+    timer.it_value.tv_usec 		= TIME_QUANTUM;	// "" (50 ms).  This will be changed to thread_unit->time_slice
     timer.it_interval.tv_sec 	= 0;			// Interval for periodic timer (sec)
     timer.it_interval.tv_usec 	= 0;			// "" (microseconds)
     setitimer(ITIMER_REAL, &timer, NULL);
 
 
     return;
-};
+}
+
+
+void scheduler_runThread(thread_unit* thread){
+
+	if(scheduler->currently_running != NULL){
+		scheduler->currently_running->state = READY;
+	}
+
+	
+	scheduler->currently_running 		= thread;
+	scheduler->currently_running->state = RUNNING;
+
+	/* Will execute function that thread points to. */ 
+	setcontext(thread->ucontext);
+
+	/* Context will switch back to scheduler either when thread completes or at a SIGARLM */
+}
 	
 
 
@@ -283,13 +339,30 @@ void _debugging_thread_unit_lib(){
 }
 
 
+void _debugging_pthread_init(){
 
+}
+
+void f1(int x){
+	printf("In f1!  %i\n", x);
+	return;
+}
 
 
 int main(){
 
 
 	scheduler_init();
+
+
+	my_pthread_t* testing = (my_pthread_t*)malloc(sizeof(my_pthread_t));
+	my_pthread_attr_t* nonesense; 
+
+	int y = my_pthread_create(testing, nonesense, (void*)f1, (void*) 2);
+
+
+	_print_thread_list(scheduler->priority_array[0]);
+
 
 	// while(1){
 	// 	//printf("I'm spinning \n");
