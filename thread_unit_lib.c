@@ -76,7 +76,7 @@ void thread_list_enqueue(thread_unit_list* list, thread_unit* unit){
 	unit->next = NULL;
 
 	// Enqueue on an empty list
-	if(list->size == 0){
+	if(thread_list_isempty(list)){
 		list->head 			= unit;
 		list->tail 			= unit;
 		list->iter 			= unit;
@@ -98,6 +98,7 @@ thread_unit* thread_list_dequeue(thread_unit_list* list){
 	if(thread_list_isempty(list)){
 		return NULL;
 	}
+
 
 	thread_unit* deq_unit;
 
@@ -137,7 +138,7 @@ thread_unit* thread_list_peek(thread_unit_list* list){
 /* Returns if list is emtpy (0 false || 1 true) */
 int thread_list_isempty(thread_unit_list* list){
 
-	if(list->size == 0){
+	if(list->size == 0 || list->head == NULL){
 		return 1;
 	}else{
 		return 0;
@@ -190,6 +191,9 @@ void _print_thread_list(thread_unit_list* list){
 
 			temp = temp->next;
 		}
+
+	}else if(list->head == NULL){
+		printf(ANSI_COLOR_CYAN "List head is NULL. \n" ANSI_COLOR_RESET);
 
 	}else{
 		printf(ANSI_COLOR_CYAN "Empty thread unit list. \n" ANSI_COLOR_RESET);

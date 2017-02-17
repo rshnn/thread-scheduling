@@ -6,6 +6,22 @@ cs-518 osdesign
 
 ## dev-notes
 
+
+### rshnn Fri 17 Feb 2017 01:58:38 PM EST
+
+Heuristic for scheduling: 
++ At mait_cycle, add 10 threads to the running queue.
+    * Dequeue from priority_array levels and enqueue into running
+* They will run for their designated time_slice. 
+* Once all 10 are complete, run mait_cycle 
+    - dequeue one thread_unit from the running queue (NOTE do not alter running queue between mait_cycle runs)
+    + Assess the new priority of that thread unit
+        * Whats its state?  Terminated?  Waiting?  Ready?
+        * How many times has it run already?
+        * Etc.
+    * Dequeue until running queue is empty
+    * Add 10 threads to the now empty running queue from the priority array levels, repeat 
+
 ### rshnn Tue 14 Feb 2017 08:18:33 AM EST
 
 Can use the following to redirect the signal handler   

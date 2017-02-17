@@ -26,7 +26,7 @@ void scheduler_init(){
 
 	// first_schedule_done = 0;
 
-	
+
     /**********************************************************************************
 		Initialize scheduler structures  
     **********************************************************************************/
@@ -118,14 +118,14 @@ void scheduler_runThread(thread_unit* thread){
 		return;
 	}
 
-	if(scheduler->currently_running != NULL){
-		scheduler->currently_running->state = READY;
-	}
+	// if(scheduler->currently_running->state == RUNNING){
+	// 	scheduler->currently_running->state = READY;
+	// }
 
 	
 	scheduler->currently_running 		= thread;
 	printf("STATE CHANGE TO RUNNING %ld\n", scheduler->currently_running->thread->threadID);
-	scheduler->currently_running->state = RUNNING;
+	// scheduler->currently_running->state = RUNNING;
 
 	/* Will execute function that thread points to. */ 
 	swapcontext(scheduler_ucontext, thread->ucontext);
@@ -140,12 +140,9 @@ void scheduler_sig_handler(){
 		return;
 	}
 
-    /**********************************************************************************
-		scheduler activities start
-    **********************************************************************************/
     
     if(scheduler->currently_running != NULL){
-    	printf(ANSI_COLOR_MAGENTA "\nScheduler Signal Handler:\n\tThread %ld just ran for %i microseconds.\n" 
+    	printf(ANSI_COLOR_MAGENTA "\nScheduler Signal Handler:\n\tThread %ld just ran for %i microseconds. Interrupting...\n" 
     			ANSI_COLOR_RESET, 
     			scheduler->currently_running->thread->threadID, 
     			scheduler->currently_running->time_slice);
@@ -156,41 +153,54 @@ void scheduler_sig_handler(){
     }
     
 
-    // if(scheduler->priority_array[0]->size > 0){
-    // 	if(scheduler->currently_running != NULL){
-    // 		scheduler_runThread(scheduler->currently_running->next);
-    // 	}else
-	   //  	scheduler_runThread(scheduler->priority_array[0]->head);
-    // }
-
-
-	/**********************************************************************************
-		\end scheduling activities
-	**********************************************************************************/
-
     my_pthread_yield();
 
 }
 
+/*
+	TODO
 
+	Right now, the mait cycle is set to run whenever the running queue runs out.
+
+	I wrote in some code to try testing the scheduler if all the threads were in
+	the top priority queue since i havent written out any of the priority degredation 
+	stuff yet.  Thats why the for loop only checks priority_array[0] for now.
+
+	This test seems to work.  I will stress test it more later. 
+
+*/
 void maintenance_cycle(){
 
 	printf(ANSI_COLOR_YELLOW "\nMaitenance Cycle\n" ANSI_COLOR_RESET);
 
 	/**********************************************************************************
-		Priority Adjustments
+		Priority Adjustments	 TODO:  all of this 
 	**********************************************************************************/
 
 	// if(thread in running queue hasnt finished): demote priority
-	scheduler->running->iter = scheduler->running->head;
-	if(scheduler->running->iter->state == READY){
+	
+	thread_unit* temp;
 
+	//scheduler->running->iter = scheduler->running->head;
+	printf(ANSI_COLOR_YELLOW "The old running queue:\n"ANSI_COLOR_RESET);
+	_print_thread_list(scheduler->running);
+
+
+	while(!thread_list_isempty(scheduler->running)){
+
+		if((temp = thread_list_dequeue(scheduler->running)) != NULL){
+
+			if(temp->state == READY){
+				thread_list_enqueue(scheduler->priority_array[0], temp);
+			}
+		
+		}
 	}
 
 
 
 	/**********************************************************************************
-		Populate running queue 
+		Populate running queue 	TODO:  Fix this shit 
 	**********************************************************************************/
 
 	/* Collect MAIT_CYCLE number processes to run and put them into running queue */
@@ -204,29 +214,27 @@ void maintenance_cycle(){
 		// Run until you add a thread to running queue 
 
 		// Check all levels of priority_array
-		// Loop back if empty 
+		thread_unit* temp;
 
-		while(scheduler->priority_array[0]->iter != NULL){
+		if((temp = thread_list_dequeue(scheduler->priority_array[0])) != NULL){
 
-			thread_list_enqueue(scheduler->running, thread_list_dequeue(scheduler->priority_array[0]));
+			thread_list_enqueue(scheduler->running, temp);
 
-			scheduler->priority_array[0]->iter = scheduler->priority_array[0]->iter->next;
 		}
-		
-		//scheduler->priority_array[0]->iter = scheduler->priority_array[0]->head;
-
 
 	}
 
 
 
 	/* Test prints */
-	printf(ANSI_COLOR_YELLOW "The current running queue:\n" ANSI_COLOR_RESET);
+	printf(ANSI_COLOR_YELLOW "The new running queue:\n" ANSI_COLOR_RESET);
 	_print_thread_list(scheduler->running);
 
 
 	printf(ANSI_COLOR_YELLOW "The current priority[0] queue:\n" ANSI_COLOR_RESET);
 	_print_thread_list(scheduler->priority_array[0]);
+
+	printf("\n");
 
 
 }
@@ -296,10 +304,11 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 		SCHEDULE THAT SHIT    
     **********************************************************************************/
 	// into highest priority bc heuristics say so 
+
 	//new_unit->state = READY;
 	thread_list_enqueue(scheduler->priority_array[0], new_unit);
 
-
+	//my_pthread_yield();
 	
 
 	/*
@@ -315,15 +324,26 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 }
 
 
+/*
+	TODO 
 
+	Currently, updating meta data about a thread before it runs.  
+	Change that.  Update the meta data after it completes running. (before the call to
+	mait cycle).
+*/
 void my_pthread_yield(){
+	/* Run next thread in the running queue.  If the running queue is empty, run mait_cycle. */
 
 	SYS_MODE = 1;
 
-	struct itimerval timer;
-	thread_unit* thread_up_next = NULL;
+	struct itimerval 	timer;
+	thread_unit* 		thread_up_next = NULL;
 
-	/* Run next thread in the running queue.  If the running queue is empty, run mait_cycle. */
+
+	if(!thread_list_isempty(scheduler->running) && scheduler->currently_running != NULL){
+		scheduler->currently_running->state = READY;
+		scheduler->currently_running->run_count++;
+	}
 
 
 	if(scheduler->running->iter == NULL){
@@ -333,22 +353,27 @@ void my_pthread_yield(){
 
 	if(!thread_list_isempty(scheduler->running)){
 
-		_print_thread_list(scheduler->running);
+		thread_up_next						= scheduler->running->iter;
+		scheduler->running->iter 			= scheduler->running->iter->next;
+		scheduler->currently_running 		= thread_up_next;
+		thread_up_next->state 				= RUNNING;
+		// thread_up_next->run_count++;
+    	timer.it_value.tv_usec 				= scheduler->currently_running->time_slice;	// "" (50 ms)
 
-		thread_up_next	= scheduler->running->iter;
-		scheduler->running->iter 	= scheduler->running->iter->next;
-		scheduler->currently_running = thread_up_next;
 		printf(ANSI_COLOR_MAGENTA "Switching to Thread %ld...\n"ANSI_COLOR_RESET, thread_up_next->thread->threadID);
+	}else{
+	    timer.it_value.tv_usec 		= TIME_QUANTUM;	// wait 50ms if running queue is empty. 
+
 	}
 
 
 	/* Set timer */
     timer.it_value.tv_sec 		= 2;			// Time remaining until next expiration (sec)
-    timer.it_value.tv_usec 		= TIME_QUANTUM;	// "" (50 ms).  This will be changed to thread_unit->time_slice
-    // timer.it_value.tv_usec 		= scheduler->currently_running->time_slice;	// "" (50 ms)
     timer.it_interval.tv_sec 	= 0;			// Interval for periodic timer (sec)
     timer.it_interval.tv_usec 	= 0;			// "" (microseconds)
     setitimer(ITIMER_REAL, &timer, NULL);
+
+
 	SYS_MODE = 0;
 
     /* Run next thread in line */
@@ -379,7 +404,30 @@ void my_pthread_exit(void *value_ptr){
 }
 
 
-int my_pthread_join(my_pthread_t thread, void **value_ptr){}
+
+int my_pthread_join(my_pthread_t thread, void **value_ptr){
+
+	/* 
+		TODO
+
+		Problem.  The parameter to this function is just a pthread struct.
+		We might need to store the state of the thread inside the pthread_t
+		to get this function to work.
+
+		I hashed out what I think the function would look like below, but it 
+		requires state to be stored in pthread_t.  
+
+	*/
+	
+
+
+	// while(thread.state != TERMINATED){
+	// 	my_pthread_yield();
+	// }
+
+	// thread->return_val = value_ptr;
+
+}
 
 
 /************************************************************************************************************
@@ -410,7 +458,7 @@ void f1(int x){
 
 	while(1){
 		sleep(1);
-		printf("Executing f1:\tArg is %i\n", x);
+		printf("\tExecuting f1:\tArg is %i\n", x);
 	
 	}
 
@@ -451,7 +499,7 @@ void _debugging_pthread_yield(){
 		}
 	} 
 
-	printf("\nPrinting thread list.  Should include pthreads 2 to 12.\n");
+	printf("\nPrinting thread list.  Should include pthreads 2 to 6.\n");
 	_print_thread_list(scheduler->priority_array[0]);
 
 
