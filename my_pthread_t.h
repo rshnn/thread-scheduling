@@ -29,7 +29,7 @@
 #define PAGE_SIZE 			4096					// Stack size defaults to page size
 #define PRIORITY_LEVELS 	5						// Number of priority levels
 #define TIME_QUANTUM 		50000 					// 50 ms = 50000 us  
-#define MAINTENENCE_TIME 	10*TIME_QUANTUM			// Experimental value 
+#define MAITENANCE_CYCLE 	3						// Experimental value 
 
 
 /************************************************************************************************************
@@ -125,6 +125,7 @@ typedef struct thread_unit_list_ {
 
 	struct thread_unit_* 		head;
 	struct thread_unit_* 		tail;
+	struct thread_unit_* 		iter;
 	int 						size;
 
 }thread_unit_list;
@@ -185,7 +186,7 @@ typedef struct scheduler_t {
 /* my_pthread core library */
 int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*function)(void*), void * arg);
 void my_pthread_yield();
-void pthread_exit(void *value_ptr);
+void my_pthread_exit(void *value_ptr);
 int my_pthread_join(my_pthread_t thread, void **value_ptr);
 
 

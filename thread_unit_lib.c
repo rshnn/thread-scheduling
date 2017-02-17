@@ -35,8 +35,6 @@ thread_unit* thread_unit_init(my_pthread_t* pthread){
 	tu->waiting_on_me 	= NULL;
 	tu->next 			= NULL;
 
-
-
 	return tu;
 }
 
@@ -63,6 +61,7 @@ thread_unit_list* thread_list_init(){
 
 	thread_list->head 	= NULL;
 	thread_list->tail 	= NULL;
+	thread_list->iter 	= NULL;
 	thread_list->size 	= 0;
 
 	return thread_list;
@@ -80,6 +79,7 @@ void thread_list_enqueue(thread_unit_list* list, thread_unit* unit){
 	if(list->size == 0){
 		list->head 			= unit;
 		list->tail 			= unit;
+		list->iter 			= unit;
 
 	// Default: Add at end and redirect tail
 	}else{
@@ -106,14 +106,14 @@ thread_unit* thread_list_dequeue(thread_unit_list* list){
 
 		deq_unit 	= list->head; 
 		list->head 	= NULL;
-		list->tail 	= NULL; 
+		list->tail 	= NULL;
 
 	/* Default: return unit at head.  Move head. */
 	}else{
 
 		deq_unit 		= list->head;
 		list->head 		= list->head->next;
-	
+		list->iter 		= list->head->next;
 	}
 
 	list->size--;
