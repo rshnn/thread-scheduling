@@ -203,8 +203,4 @@ void scheduler_init();
 void scheduler_sig_handler();
 
 
-// /* global vars go in .c file */
-// ucontext_t      main_context;
-// ucontext_t      scheduler_context;
-
 #endif

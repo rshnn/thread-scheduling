@@ -18,6 +18,7 @@ static ucontext_t* 	scheduler_ucontext;
 *
 ************************************************************************************************************/
 
+
 int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*function)(void*), void * arg){
 
 	/**********************************************************************************
@@ -28,9 +29,11 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 		has my_pthread_t has already been malloced (????)  Assuming it has been malloced already. 
 			Assume an empty pthread_t that needs to be populated with defaults enters  
 	*/
+	thread = (my_pthread_t*)malloc(sizeof(my_pthread_t)); 	// mallocing size for pthread
+
 
 	thread->threadID = scheduler->threadID_count;
-	scheduler->threadID_count++;
+	scheduler->threadID_count++; //global counter for threadID  change later 
 
 	thread->return_val = NULL;
 
@@ -48,7 +51,7 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
     **********************************************************************************/
 
 	/* copy (fork) the current ucontext */
-	if(getcontext(new_unit->ucontext) == -1){
+	if(getcontext(new_unit->ucontext) < 0){
 		printf("Error obtaining ucontext of thread");
 		exit(-1);
 	} 
@@ -67,7 +70,7 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 	/* Assign func* to ucontext */
 	makecontext(new_unit->ucontext, (void*)function, 1, arg); 		
 	// Should we write a separate scheduler_run_thread call?
-    
+    // errno for < 0 (be sure to cleanup if failure)
 
 
     /**********************************************************************************
@@ -85,6 +88,8 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 			That thread_unit_t's ucontext will be populated 
 			That thread_unit will be enqueued into the priority 0 thread list. 
 	*/
+
+	return 1;
 }
 
 
@@ -201,6 +206,28 @@ void scheduler_init(){
 
 }
 
+
+void scheduler_runThread(thread_unit* thread){
+
+	if(thread == NULL){
+		printf(ANSI_COLOR_RED "Attempted to schedule a NULL thread\n"ANSI_COLOR_RESET);
+		return;
+	}
+
+	if(scheduler->currently_running != NULL){
+		scheduler->currently_running->state = READY;
+	}
+
+	
+	scheduler->currently_running 		= thread;
+	scheduler->currently_running->state = RUNNING;
+
+	/* Will execute function that thread points to. */ 
+	swapcontext(scheduler_ucontext, thread->ucontext);
+
+	/* Context will switch back to scheduler either when thread completes or at a SIGARLM */
+}
+
 void scheduler_sig_handler(){
 
 	struct itimerval timer;
@@ -222,14 +249,20 @@ void scheduler_sig_handler(){
     			ANSI_COLOR_RESET, 
     			scheduler->currently_running->thread->threadID, 
     			scheduler->currently_running->time_slice);
+
 		
     }else{
-    	printf(ANSI_COLOR_MAGENTA "Scheduler Signal Handler:\n\tNo thread have run yet.\n\n" ANSI_COLOR_RESET);
+    	printf(ANSI_COLOR_MAGENTA "Scheduler Signal Handler:\n\tNo threads have run yet.\n\n" ANSI_COLOR_RESET);
+
     }
     
 
-
-
+    if(scheduler->priority_array[0]->size > 0){
+    	if(scheduler->currently_running != NULL){
+    		scheduler_runThread(scheduler->currently_running->next);
+    	}else
+	    	scheduler_runThread(scheduler->priority_array[0]->head);
+    }
 
 
 	/**********************************************************************************
@@ -238,9 +271,9 @@ void scheduler_sig_handler(){
 
 
 	/* Set Timer */
-    timer.it_value.tv_sec 		= 2;			// Time remaining until next expiration (sec)
+    timer.it_value.tv_sec 		= 0;			// Time remaining until next expiration (sec)
     timer.it_value.tv_usec 		= TIME_QUANTUM;	// "" (50 ms).  This will be changed to thread_unit->time_slice
-    timer.it_interval.tv_sec 	= 0;			// Interval for periodic timer (sec)
+    timer.it_interval.tv_sec 	= 3;			// Interval for periodic timer (sec)
     timer.it_interval.tv_usec 	= 0;			// "" (microseconds)
     setitimer(ITIMER_REAL, &timer, NULL);
 
@@ -249,21 +282,6 @@ void scheduler_sig_handler(){
 }
 
 
-void scheduler_runThread(thread_unit* thread){
-
-	if(scheduler->currently_running != NULL){
-		scheduler->currently_running->state = READY;
-	}
-
-	
-	scheduler->currently_running 		= thread;
-	scheduler->currently_running->state = RUNNING;
-
-	/* Will execute function that thread points to. */ 
-	setcontext(thread->ucontext);
-
-	/* Context will switch back to scheduler either when thread completes or at a SIGARLM */
-}
 	
 
 
@@ -281,8 +299,7 @@ void _debugging_thread_unit_lib(){
 	
 
 	// rshnn Tue 14 Feb 2017 12:20:09 PM EST
-
-	printf("Debugging thread_unit_lib...\n\n");
+	printf(ANSI_COLOR_RED "\n\nRunning thread_unit_lib debug test...\n\n" ANSI_COLOR_RESET);
 
 	int i = 0;
 	my_pthread_t* 		pthread_arr[10];
@@ -358,27 +375,53 @@ void f1(int x){
 	Tests the pthread_create() function 
 */
 void _debugging_pthread_create(){
+
+
+	printf(ANSI_COLOR_RED "\n\nRunning pthread_create() debug test...\n\n" ANSI_COLOR_RESET);
 	
-	my_pthread_t* testing = (my_pthread_t*)malloc(sizeof(my_pthread_t));
-	my_pthread_attr_t* nonesense; 
-
-	int y = my_pthread_create(testing, nonesense, (void*)f1, (void*) 2);
-
-
-	_print_thread_list(scheduler->priority_array[0]);
-
-	scheduler_runThread(scheduler->priority_array[0]->head);
-
-
-
-}
-
-
-int main(){
+	/* Get main's ucontext */
+	main_ucontext = (ucontext_t*)malloc(sizeof(ucontext_t));
+	main_ucontext->uc_stack.ss_sp = malloc(PAGE_SIZE);
+	main_ucontext->uc_stack.ss_size = PAGE_SIZE;
+	getcontext(main_ucontext);
+	makecontext(main_ucontext, (void*)_debugging_pthread_create, 1, NULL);
 
 
 	scheduler_init();
 
+	my_pthread_t* pthread_array[10];
+	my_pthread_attr_t* 	useless_attr;
+	int i;
+
+	for(i=0; i<=10;i++){
+
+		pthread_array[i] = (my_pthread_t*)malloc(sizeof(my_pthread_t));
+
+		if(my_pthread_create(pthread_array[i], useless_attr, (void*)f1, (void*) i)){
+			printf(ANSI_COLOR_GREEN "Successfully created pthread and enqueued.\n" ANSI_COLOR_RESET);
+		}
+	} 
+
+	printf("\nPrinting thread list.  Should include pthreads 2 to 12.\n");
+	_print_thread_list(scheduler->priority_array[0]);
+
+
+
+	// for(i=0;i<=10;i++){
+
+	// 	scheduler_runThread(scheduler->priority_array[0]->head);
+	// 	printf("Removing Thead ID %ld\n",scheduler->priority_array[0]->head->thread->threadID);
+	// 	thread_list_dequeue(scheduler->priority_array[0]);
+	// }
+		
+
+	while(1);
+
+	printf(ANSI_COLOR_RED "End pthread_create() debug test." ANSI_COLOR_RESET);
+}
+
+
+int main(){
 
 
 	// while(1){
