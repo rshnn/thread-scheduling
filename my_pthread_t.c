@@ -26,7 +26,6 @@ void scheduler_init(){
 
 	// first_schedule_done = 0;
 
-
     /**********************************************************************************
 		Initialize scheduler structures  
     **********************************************************************************/
@@ -57,31 +56,33 @@ void scheduler_init(){
 		UCONTEXT SETUP   
     **********************************************************************************/
 
-	/* Attempt to malloc space for scheduler_ucontext */
-	if ((scheduler_ucontext = (ucontext_t*)malloc(sizeof(ucontext_t))) == NULL){
+	/* Attempt to malloc space for main_ucontext */
+	if ((main_ucontext = (ucontext_t*)malloc(sizeof(ucontext_t))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
+		exit(-1);
 	}
 
 	/* copy (fork) the current ucontext */
-	if(getcontext(scheduler_ucontext) == -1){
+	if(getcontext(main_ucontext) == -1){
 		printf("Error obtaining ucontext of scheduler");
 		exit(-1);
 	} 
 
 	/* Set up ucontext stack */
-	if((scheduler_ucontext->uc_stack.ss_sp = malloc(PAGE_SIZE))==NULL){
+	if((main_ucontext->uc_stack.ss_sp = malloc(PAGE_SIZE))==NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
+		exit(-1);
 	}
-	scheduler_ucontext->uc_stack.ss_size 	= PAGE_SIZE;
-	scheduler_ucontext->uc_stack.ss_flags 	= 0;
+	main_ucontext->uc_stack.ss_size 	= PAGE_SIZE;
+	// main_ucontext->uc_stack.ss_flags 	= 0;
 		/* wtf is happening here^?  I found this online somewhere.  Is it working?*/
 
 
-	/* Set uc_link to point to addr of scheduler_ucontext */
-	scheduler_ucontext->uc_link 			= main_ucontext;
+	/* Set uc_link to point to addr of main_ucontext */
+	main_ucontext->uc_link 			= main_ucontext;
 
 	/* Assign func* to ucontext */
-	makecontext(scheduler_ucontext, (void*)scheduler_sig_handler, 1, NULL); 	// Should we write a separate scheduler_run_thread call?
+	makecontext(main_ucontext, (void*)scheduler_sig_handler, 1, NULL); 	// Should we write a separate scheduler_run_thread call?
     
     /**********************************************************************************/
 
@@ -111,7 +112,9 @@ void scheduler_init(){
 }
 
 
-void scheduler_runThread(thread_unit* thread){
+void scheduler_runThread(thread_unit* thread, thread_unit* prev){
+
+
 
 	if(thread == NULL){
 		printf(ANSI_COLOR_RED "Attempted to schedule a NULL thread\n"ANSI_COLOR_RESET);
@@ -124,11 +127,30 @@ void scheduler_runThread(thread_unit* thread){
 
 	
 	scheduler->currently_running 		= thread;
-	printf("STATE CHANGE TO RUNNING %ld\n", scheduler->currently_running->thread->threadID);
 	// scheduler->currently_running->state = RUNNING;
 
 	/* Will execute function that thread points to. */ 
-	swapcontext(scheduler_ucontext, thread->ucontext);
+	
+
+	if(prev == NULL){
+		if ((swapcontext(main_ucontext, thread->ucontext)) < 0)
+			printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
+	}else{
+		if ((swapcontext(prev->ucontext, thread->ucontext)) < 0)
+			printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
+	}
+
+
+	// if ((swapcontext(prev->ucontext, thread->ucontext)) < 0){
+	// 	printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
+	// }
+
+
+
+
+	// if ((swapcontext(main_ucontext, thread->ucontext)) < 0){
+	// 	printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
+	// }
 
 	/* Context will switch back to scheduler either when thread completes or at a SIGARLM */
 }
@@ -255,6 +277,9 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
     **********************************************************************************/
 
 	/* Assuming empty pthread pointer passed in. */
+	/* ASSUME PTHREAD ALREADY HAS SPACE */
+	SYS_MODE = 1;
+
 	if ((thread = (my_pthread_t*)malloc(sizeof(my_pthread_t))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 	}
@@ -263,9 +288,6 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 	scheduler->threadID_count++; 	// Uses some global counter for threadID.  Change method later 
 
 	thread->return_val = NULL;
-
-	/* Assign to highest priority (new threads enter highest priority queue) */
-	thread->priority = 0;
 
 
 	/* Init thread_unit for this pthread */
@@ -292,7 +314,7 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 
 
 	/* Set uc_link to point to addr of scheduler's ucontext */
-	new_unit->ucontext->uc_link 			= scheduler_ucontext;
+	new_unit->ucontext->uc_link 			= main_ucontext;
 
 	/* Assign func* to ucontext */
 	makecontext(new_unit->ucontext, (void*)function, 1, arg); 		
@@ -305,10 +327,10 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
     **********************************************************************************/
 	// into highest priority bc heuristics say so 
 
-	//new_unit->state = READY;
+	new_unit->priority 	= 0;
+	new_unit->state 	= READY;
 	thread_list_enqueue(scheduler->priority_array[0], new_unit);
 
-	//my_pthread_yield();
 	
 
 	/*
@@ -320,17 +342,16 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 		End by calling yield().
 	*/
 
+	SYS_MODE = 0;
+	
+	// my_pthread_yield();
+	
+
 	return 1;
 }
 
 
-/*
-	TODO 
 
-	Currently, updating meta data about a thread before it runs.  
-	Change that.  Update the meta data after it completes running. (before the call to
-	mait cycle).
-*/
 void my_pthread_yield(){
 	/* Run next thread in the running queue.  If the running queue is empty, run mait_cycle. */
 
@@ -338,8 +359,9 @@ void my_pthread_yield(){
 
 	struct itimerval 	timer;
 	thread_unit* 		thread_up_next = NULL;
+	thread_unit* 		prev = scheduler->currently_running;
 
-
+	/* Currently_runnig is the one that just finished running */
 	if(!thread_list_isempty(scheduler->running) && scheduler->currently_running != NULL){
 		scheduler->currently_running->state = READY;
 		scheduler->currently_running->run_count++;
@@ -377,7 +399,7 @@ void my_pthread_yield(){
 	SYS_MODE = 0;
 
     /* Run next thread in line */
-	scheduler_runThread(thread_up_next);
+	scheduler_runThread(thread_up_next, prev);
 
 
 }
@@ -475,13 +497,6 @@ void _debugging_pthread_yield(){
 	
 	int NUM_PTHREADS = 5;
 
-
-	/* Get main's ucontext */
-	main_ucontext = (ucontext_t*)malloc(sizeof(ucontext_t));
-	main_ucontext->uc_stack.ss_sp = malloc(PAGE_SIZE);
-	main_ucontext->uc_stack.ss_size = PAGE_SIZE;
-	getcontext(main_ucontext);
-	makecontext(main_ucontext, (void*)_debugging_pthread_yield, 1, NULL);
 
 	/* init scheduler...calls sig handler */
 	scheduler_init();

@@ -43,9 +43,10 @@
 */
 typedef struct my_pthread_t {
 
-    long int 			threadID;
-	void *              return_val;
-	int                 priority;
+    long int 				threadID;
+	void *              	return_val;
+	int                 	priority;
+	struct thread_unit_* 	thread_unit;
 
 }my_pthread_t;
 
@@ -110,6 +111,7 @@ typedef struct thread_unit_ {
     state               		state;          // NOTE: do we need to keep info on why its waiting here?
 	int                 		time_slice;
 	int                 		run_count;
+	int 						priority;
     struct thread_unit_list_*   waiting_on_me;  // Linked list of thread_units currently waiting on this thread
     
     struct thread_unit_* 		next;
