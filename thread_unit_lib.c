@@ -32,8 +32,8 @@ thread_unit* thread_unit_init(my_pthread_t* pthread){
 	tu->state 			= EMBRYO;
 	tu->time_slice 		= TIME_QUANTUM;
 	tu->run_count 		= 0;
-	tu->waiting_on_me 	= NULL;
 	tu->next 			= NULL;
+	tu->wait_next 		= NULL;
 
 	return tu;
 }

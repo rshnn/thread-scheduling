@@ -29,7 +29,7 @@
 #define PAGE_SIZE 			4096					// Stack size defaults to page size
 #define PRIORITY_LEVELS 	5						// Number of priority levels
 #define TIME_QUANTUM 		50000 					// 50 ms = 50000 us  
-#define MAITENANCE_CYCLE 	3						// Experimental value 
+#define MAINT_CYCLE 			3						// Experimental value 
 
 
 /************************************************************************************************************
@@ -112,9 +112,9 @@ typedef struct thread_unit_ {
 	int                 		time_slice;
 	int                 		run_count;
 	int 						priority;
-    struct thread_unit_list_*   waiting_on_me;  // Linked list of thread_units currently waiting on this thread
     
     struct thread_unit_* 		next;
+    struct thread_unit_*		wait_next;
 }thread_unit;
 
 
@@ -170,8 +170,6 @@ typedef struct scheduler_t {
     struct thread_unit_* 		currently_running;
     struct thread_unit_list_*	running;
     struct thread_unit_list_*	waiting;
-    ucontext_t 					scheduler_ucontext;	// Turn this into a thread_unit?
-    ucontext_t					main_ucontext;		// Turn this into a thread_unit?
 
 }scheduler_t;
 
