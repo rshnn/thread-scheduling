@@ -108,16 +108,33 @@ void maintenance_cycle(){
 	printf(ANSI_COLOR_YELLOW "\nMaintenance Cycle\n" ANSI_COLOR_RESET);
 
 	/**********************************************************************************
-		Priority Adjustments	 TODO:  all of this 
+		Priority Adjustments	 TODO:  all of this
 	**********************************************************************************/
+
+
+	int i;
+	thread_unit* temp;
+	/* Adjust priorities of all threads by increasing priority by 1 */
+	for(i=1; i<PRIORITY_LEVELS; i++){
+
+		while(!thread_list_isempty(scheduler->priority_array[i])){
+
+			if((temp = thread_list_dequeue(scheduler->priority_array[i])) != NULL){
+				int new_priority = temp->priority;
+				new_priority--;
+				temp->priority = new_priority;
+				thread_list_enqueue(scheduler->priority_array[new_priority], temp);
+			}
+
+		}
+	}
 
 
 
 	/**********************************************************************************
-		ADD RUNNING BACK IN 	 
+		ADD RUNNING BACK IN
 	**********************************************************************************/
 	
-	thread_unit* temp;
 
 	//scheduler->running->iter = scheduler->running->head;
 	printf(ANSI_COLOR_YELLOW "The old running queue:\n"ANSI_COLOR_RESET);
@@ -129,7 +146,14 @@ void maintenance_cycle(){
 		if((temp = thread_list_dequeue(scheduler->running)) != NULL){
 
 			if(temp->state == READY){
-				thread_list_enqueue(scheduler->priority_array[0], temp);
+				/* lower a thread's priority before putting it back into multi-priority	queue */
+				int new_priority = temp->priority;
+				new_priority++;
+				if(new_priority >= PRIORITY_LEVELS){
+					new_priority = PRIORITY_LEVELS-1;
+				}
+				temp->priority = new_priority;
+				thread_list_enqueue(scheduler->priority_array[new_priority], temp);
 			}
 		
 		}
@@ -142,7 +166,6 @@ void maintenance_cycle(){
 	**********************************************************************************/
 
 	/* Collect MAINT_CYCLE number processes to run and put them into running queue */
-	int i; 
 	scheduler->running->head = NULL;
 	scheduler->running->tail = NULL;
 	scheduler->running->iter = NULL;
@@ -155,7 +178,7 @@ void maintenance_cycle(){
 		thread_unit* temp;
 
 		if((temp = thread_list_dequeue(scheduler->priority_array[0])) != NULL){
-
+			temp->time_slice = TIME_QUANTUM * (temp->priority + 1);
 			thread_list_enqueue(scheduler->running, temp);
 
 		}
@@ -168,9 +191,10 @@ void maintenance_cycle(){
 	printf(ANSI_COLOR_YELLOW "The new running queue:\n" ANSI_COLOR_RESET);
 	_print_thread_list(scheduler->running);
 
-
-	printf(ANSI_COLOR_YELLOW "The current priority[0] queue:\n" ANSI_COLOR_RESET);
-	_print_thread_list(scheduler->priority_array[0]);
+	for(i=0; i<PRIORITY_LEVELS; i++){
+		printf(ANSI_COLOR_YELLOW "The current queue with threads of priority %d:\n" ANSI_COLOR_RESET, i+1);
+		_print_thread_list(scheduler->priority_array[i]);
+	}
 
 	printf(ANSI_COLOR_YELLOW "----------------\n\n" ANSI_COLOR_RESET);
 
@@ -432,11 +456,13 @@ void my_pthread_yield(){
 	struct itimerval 	timer;
 	thread_unit* 		thread_up_next = NULL;
 	thread_unit* 		prev = scheduler->currently_running;
+	int 				runs = 0;
 
-	/* Currently_runnig is the one that just finished running */
+	/* Currently_running is the one that just finished running */
 	if(!thread_list_isempty(scheduler->running) && scheduler->currently_running != NULL){
+		runs = scheduler->currently_running->time_slice / TIME_QUANTUM;
 		scheduler->currently_running->state = READY;
-		scheduler->currently_running->run_count++;
+		scheduler->currently_running->run_count += runs;
 	}
 
 
