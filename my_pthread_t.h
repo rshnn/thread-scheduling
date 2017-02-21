@@ -112,9 +112,11 @@ typedef struct thread_unit_ {
 	int                 		time_slice;
 	int                 		run_count;
 	int 						priority;
-    
+    int							joinedID;
     struct thread_unit_* 		next;
-    struct thread_unit_*		wait_next;
+	struct thread_unit_*		wait_next;
+	struct thread_unit_*		wait_prev;
+
 }thread_unit;
 
 
@@ -202,6 +204,7 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex);
 /* scheduler library */
 void scheduler_init();
 void scheduler_sig_handler();
+void priority_level_sort();
 
 
 #endif
