@@ -54,7 +54,7 @@ void priority_level_sort(){
 		}
 		current = scheduler->priority_array[i]->head;
 		while(current != NULL){
-			printf("TID %d: run_count: %d \n",current->thread->threadID,current->run_count);
+			printf("TID %ld: run_count: %d \n",current->thread->threadID,current->run_count);
 			if(current->next == NULL){
 				scheduler->priority_array[i]->tail = current;
 			}
@@ -264,7 +264,7 @@ void scheduler_init(){
 	main_thread_unit->state = READY;
 	main_thread_unit->time_slice = TIME_QUANTUM;
 	main_thread_unit->run_count = 0;
-	main_thread_unit->wait_next = thread_list_init();
+	main_thread_unit->wait_next = NULL;
 	main_thread_unit->next = NULL;
 
 	// maintenance_thread_unit->state	= READY; 
@@ -546,16 +546,16 @@ void my_pthread_exit(void *value_ptr){
 	
 	*/
 	//scheduler->currently_running->thread->return_val = value_ptr;
-	thread_unit_* temp = scheduler->waiting->head;
-	thread_unit * prev = NULL;
+	thread_unit* temp = scheduler->waiting->head;
+	thread_unit* prev = NULL;
 	while(temp != NULL){
 		if(temp->joinedID == scheduler->currently_running->thread->threadID){
 			//remove thread from waiting list and change state to READY
 			//consider case for head
 			temp->state = READY;
-			temp->return_val = value_ptr;
+			temp->thread->return_val = value_ptr;
 			if(prev == NULL){
-				scheduler->waiting->head = temp->next_wait;
+				scheduler->waiting->head = temp->wait_next;
 			}else{
 				prev->wait_next = temp->wait_next;
 			}
@@ -588,21 +588,21 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr){
 		requires state to be stored in pthread_t.  
 
 	*/
-	if(thread->thread_unit == NULL){
+	if(thread.thread_unit == NULL){
 		printf("Thread to join does not exist\n");
 		return -1;
 	}
-	if(scheduler->current_running->thread->threadID = thread->threadID){
+	if(scheduler->currently_running->thread->threadID = thread.threadID){
 		printf("Trying to join itself\n");
 		return -1;
 	}
-	if(scheduler->current_running->state != RUNNING){
+	if(scheduler->currently_running->state != RUNNING){
 		printf("Not possible to join because I am not ready\n");
 		return -1;
 	}
-	scheduler->currently_running->joinedID = thread->threadID;
+	scheduler->currently_running->joinedID = thread.threadID;
 	scheduler->currently_running->state = BLOCKED;
-	scheduler->currently_running->return_val = value_ptr;
+	scheduler->currently_running->thread->return_val = value_ptr;
 	//enqueue currently running into the scheduler->waiting thread_list;
 	//call scheduler
 
