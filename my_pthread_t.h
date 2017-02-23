@@ -90,7 +90,7 @@ typedef enum state_ {
 	EMBRYO,         // In process of being initialized  
 	READY,          // Ready to be scheduled 
 	RUNNING,        // Currently executing 
-	BLOCKED,        // A thread that is blocked waiting for a lock 
+	// BLOCKED,        // A thread that is blocked waiting for a lock 
 	WAITING,        // A thread that is waiting indefinitely for another thread to perform an action (yield+blocked)
 	TERMINATED,     // Exited.  Terminated 
 	ZOMBIE          // Identified as zombie process 

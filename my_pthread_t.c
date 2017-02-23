@@ -578,15 +578,7 @@ void my_pthread_exit(void *value_ptr){
 int my_pthread_join(my_pthread_t thread, void **value_ptr){
 
 	/* 
-		TODO
-
-		Problem.  The parameter to this function is just a pthread struct.
-		We might need to store the state of the thread inside the pthread_t
-		to get this function to work.
-
-		I hashed out what I think the function would look like below, but it 
-		requires state to be stored in pthread_t.  
-
+		TODO: Test 
 	*/
 	if(thread.thread_unit == NULL){
 		printf("Thread to join does not exist\n");
@@ -601,16 +593,12 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr){
 		return -1;
 	}
 	scheduler->currently_running->joinedID = thread.threadID;
-	scheduler->currently_running->state = BLOCKED;
+	scheduler->currently_running->state = WAITING;
 	scheduler->currently_running->thread->return_val = value_ptr;
-	//enqueue currently running into the scheduler->waiting thread_list;
-	//call scheduler
 
 	// while(thread.state != TERMINATED){
 	// 	my_pthread_yield();
 	// }
-
-	// thread->return_val = value_ptr;
 
 }
 
@@ -661,6 +649,37 @@ void f1(int x){
 
 
 
+void _debugging_pthread_join(){
+
+	printf(ANSI_COLOR_RED "\n\nRunning pthread_join() debug test...\n\n" ANSI_COLOR_RESET);
+	
+	int NUM_PTHREADS = 5;
+
+
+	/* init scheduler...calls sig handler */
+	scheduler_init();
+
+	my_pthread_t pthread_array[NUM_PTHREADS];
+	my_pthread_attr_t* 	useless_attr;
+	int i;
+
+	for(i=0; i<NUM_PTHREADS;i++){
+
+		
+		if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f1, (void*) i)){
+			printf(ANSI_COLOR_GREEN "Successfully created pthread and enqueued.\n" ANSI_COLOR_RESET);
+		}
+	} 
+
+	printf("\nPrinting thread list.  Should include pthreads 2 to 6.\n");
+	_print_thread_list(scheduler->priority_array[0]);
+
+
+	while(1);
+
+}
+
+
 void _debugging_pthread_yield(){
 
 
@@ -693,7 +712,7 @@ void _debugging_pthread_yield(){
 
 	while(1);
 
-	printf(ANSI_COLOR_RED "End pthread_create() debug test." ANSI_COLOR_RESET);
+	printf(ANSI_COLOR_RED "End pthread_yield() debug test." ANSI_COLOR_RESET);
 
 }
 
