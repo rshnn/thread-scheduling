@@ -473,9 +473,11 @@ void my_pthread_yield(){
 	thread_unit* 		thread_up_next = NULL;
 	thread_unit* 		prev = scheduler->currently_running;
 
-	/* Currently_runnig is the one that just finished running */
+	/* Currently_running is the one that just finished running */
 	if(!thread_list_isempty(scheduler->running) && scheduler->currently_running != NULL){
-		scheduler->currently_running->state = READY;
+		if(scheduler->currently_running->state != TERMINATED){
+			scheduler->currently_running->state = READY;
+		}
 		scheduler->currently_running->run_count++;
 	}
 
@@ -491,7 +493,6 @@ void my_pthread_yield(){
 		scheduler->running->iter 			= scheduler->running->iter->next;
 		scheduler->currently_running 		= thread_up_next;
 		thread_up_next->state 				= RUNNING;
-		// thread_up_next->run_count++;
     	timer.it_value.tv_usec 				= scheduler->currently_running->time_slice;	// "" (50 ms)
 
 		printf(ANSI_COLOR_GREEN "\tSwitching to Thread %ld...\n"ANSI_COLOR_RESET, thread_up_next->thread->threadID);
@@ -531,7 +532,6 @@ void my_pthread_exit(void *value_ptr){
 		Only pass the void* along ad then call yield
 	*/
 
-
 	SYS_MODE = 1;
 
 	if(scheduler->currently_running->state == TERMINATED){
@@ -541,17 +541,16 @@ void my_pthread_exit(void *value_ptr){
 	scheduler->currently_running->state = TERMINATED;
 	scheduler->currently_running->thread->threadID = -1;
 	/*
-		Now we loop through the waiting on me list to store the return val into 
+		Now we loop through the waiting queue to store the return val into 
 		the return_val for threads that had joined it
-	
+		Also set their states to READY (they are no longer WAITING)
 	*/
-	//scheduler->currently_running->thread->return_val = value_ptr;
 	thread_unit* temp = scheduler->waiting->head;
 	thread_unit* prev = NULL;
 	while(temp != NULL){
 		if(temp->joinedID == scheduler->currently_running->thread->threadID){
-			//remove thread from waiting list and change state to READY
-			//consider case for head
+			// remove thread from waiting list and change state to READY
+			// consider case for head
 			temp->state = READY;
 			temp->thread->return_val = value_ptr;
 			if(prev == NULL){
