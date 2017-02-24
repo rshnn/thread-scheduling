@@ -160,18 +160,39 @@ void maintenance_cycle(){
 	}
 
 
-
 	/**********************************************************************************
 		Populate running queue 	TODO:  Fix this shit 
 	**********************************************************************************/
 
-	/* Collect MAINT_CYCLE number processes to run and put them into running queue */
+	/* Collect RUNNING_TIME number processes to run and put them into running queue */
 	scheduler->running->head = NULL;
 	scheduler->running->tail = NULL;
 	scheduler->running->iter = NULL;
 
+	int j;
+	int num_quanta = 0;
+	int scheduled_time = 0;
+	/* Picks (PRIORITY_LEVELS - scheduler priority level) number of threads from each scheduler priority level */
+	for(i=0; i<PRIORITY_LEVELS; i++){
+		num_quanta = i + 1;
 
-	for(i=0; i<MAINT_CYCLE; i++){
+		for(j=0; j<PRIORITY_LEVELS-i; j++){
+			thread_unit* temp;
+			/* if adding thread increases beyond RUNNING_TIME, break */
+			if((scheduled_time+num_quanta) > RUNNING_TIME){
+				break;
+			}
+
+			if((temp = thread_list_dequeue(scheduler->priority_array[i])) != NULL){
+				scheduled_time += num_quanta;
+				temp->time_slice = TIME_QUANTUM * num_quanta;
+				thread_list_enqueue(scheduler->running, temp);
+			}
+		}
+	}
+
+/*
+	for(i=0; i<RUNNING_TIME; i++){
 		// Run until you add a thread to running queue 
 
 		// Check all levels of priority_array
@@ -184,7 +205,7 @@ void maintenance_cycle(){
 		}
 
 	}
-
+*/
 
 
 	/* Test prints */
