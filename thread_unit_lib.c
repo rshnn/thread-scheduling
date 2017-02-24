@@ -147,6 +147,71 @@ int thread_list_isempty(thread_unit_list* list){
 
 
 
+
+/************************************************************************************************************
+*
+*    THREAD_UNIT_LIST FUNCTIONS FOR WAITING QUEUE (LINKED LIST LIBRARY)
+*
+************************************************************************************************************/
+
+
+
+/* New thread_units added to the end of the queue */
+void thread_list_enqueue_wait(thread_unit_list* list, thread_unit* unit){
+
+	/* Clear node->next */
+	unit->wait_next = NULL;
+
+	// Enqueue on an empty list
+	if(thread_list_isempty(list)){
+		list->head 			= unit;
+		list->tail 			= unit;
+		list->iter 			= unit;
+
+	// Default: Add at end and redirect tail
+	}else{
+		list->tail->wait_next	= unit;
+		list->tail 				= unit;
+	}
+
+	list->size++;
+}
+
+
+
+thread_unit* thread_list_dequeue_wait(thread_unit_list* list){
+
+	/* Empty list -- Return NULL */
+	if(thread_list_isempty(list)){
+		return NULL;
+	}
+
+
+	thread_unit* deq_unit;
+
+	/* One item list */
+	if(list->size == 1){
+
+		deq_unit 	= list->head; 
+		list->head 	= NULL;
+		list->tail 	= NULL;
+
+	/* Default: return unit at head.  Move head. */
+	}else{
+
+		deq_unit 		= list->head;
+		list->head 		= list->head->wait_next;
+		list->iter 		= list->head->wait_next;
+	}
+
+	list->size--;
+	return deq_unit;
+
+}
+
+
+
+
 /************************************************************************************************************
 *
 *    DEBUGGING FUNCTIONS
@@ -205,7 +270,7 @@ void _print_thread_list(thread_unit_list* list){
 
 
 /* DEBUGGING ONLY: Print out thread wait list */
-void _print_thread_waitlist(thread_unit_list* list){
+void _print_thread_list_wait(thread_unit_list* list){
 
 	thread_unit* temp;
 

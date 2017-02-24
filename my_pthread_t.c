@@ -10,11 +10,12 @@
 
 static scheduler_t* scheduler;
 
-int 				SYS_MODE;
+int 				SYS_MODE 				= 0;
+int 				scheduler_initialized 	= 0;
+int 				first_run_complete		= 0;
 
 thread_unit*		maintenance_thread_unit;
 thread_unit* 		main_thread_unit;
-int 				first_run_complete;
 
 
 
@@ -61,10 +62,8 @@ void priority_level_sort(){
 			current = current->next;
 		}
 		scheduler->priority_array[i]->iter = scheduler->priority_array[i]->head->next; 
-	}
-	
+	}	
 }
-
 
 
 void scheduler_runThread(thread_unit* thread, thread_unit* prev){
@@ -106,6 +105,7 @@ void scheduler_runThread(thread_unit* thread, thread_unit* prev){
 	/* Context will switch back to scheduler either when thread completes or at a SIGARLM */
 }
 
+
 void scheduler_sig_handler(){
 
 
@@ -115,36 +115,25 @@ void scheduler_sig_handler(){
 
     
     if(scheduler->currently_running != NULL){
-    	printf(ANSI_COLOR_GREEN "\nScheduler Signal Handler:\n\tThread %ld just ran for %i microseconds. Interrupting...\n" 
+    	printf(ANSI_COLOR_GREEN "\nSIGALRM\tThread %ld just ran for %i microseconds. \n\tInterrupting Thread %ld.\n" 
     			ANSI_COLOR_RESET, 
     			scheduler->currently_running->thread->threadID, 
-    			scheduler->currently_running->time_slice);
+    			scheduler->currently_running->time_slice,
+    			scheduler->currently_running->thread->threadID);
 		
     }else{
-    	printf(ANSI_COLOR_GREEN "\nScheduler Signal Handler:\n\tNo threads have run yet.\n" ANSI_COLOR_RESET);
+    	printf(ANSI_COLOR_GREEN "\nSIGALRM\tNo threads have run yet.\n" ANSI_COLOR_RESET);
 
     }
     
 
     my_pthread_yield();
-
 }
 
-/*
-	TODO
 
-	Right now, the maint cycle is set to run whenever the running queue runs out.
-
-	I wrote in some code to try testing the scheduler if all the threads were in
-	the top priority queue since i havent written out any of the priority degredation 
-	stuff yet.  Thats why the for loop only checks priority_array[0] for now.
-
-	This test seems to work.  I will stress test it more later. 
-
-*/
 void maintenance_cycle(){
 
-	printf(ANSI_COLOR_YELLOW "\n----------------" ANSI_COLOR_RESET);
+	printf(ANSI_COLOR_YELLOW "\n------------------------------------------------" ANSI_COLOR_RESET);
 	printf(ANSI_COLOR_YELLOW "\nMaintenance Cycle\n" ANSI_COLOR_RESET);
 
 	/**********************************************************************************
@@ -176,7 +165,7 @@ void maintenance_cycle(){
 	}
 
 	printf(ANSI_COLOR_YELLOW "The old waiting queue:\n"ANSI_COLOR_RESET);
-	_print_thread_waitlist(scheduler->waiting);
+	_print_thread_list_wait(scheduler->waiting);
 
 
 	/**********************************************************************************
@@ -211,35 +200,30 @@ void maintenance_cycle(){
 	_print_thread_list(scheduler->running);
 
 	printf(ANSI_COLOR_YELLOW "The new waiting queue:\n"ANSI_COLOR_RESET);
-	_print_thread_waitlist(scheduler->waiting);
+	_print_thread_list_wait(scheduler->waiting);
 
 	printf(ANSI_COLOR_YELLOW "The current priority[0] queue:\n" ANSI_COLOR_RESET);
 	_print_thread_list(scheduler->priority_array[0]);
 
-	printf(ANSI_COLOR_YELLOW "----------------\n\n" ANSI_COLOR_RESET);
-
-
+	printf(ANSI_COLOR_YELLOW "------------------------------------------------\n\n" ANSI_COLOR_RESET);
 }
 
 
 void scheduler_init(){
 
-	// first_schedule_done = 0;
-
     /**********************************************************************************
-		Initialize scheduler structures  
+		INITIALIZE SCHEDULER STRUCTURES   
     **********************************************************************************/
 
 	int i;
+	SYS_MODE = 1;
 
-	first_run_complete = 0;
-
-	/* Attempt to malloc space for scheduler */
+	/* Malloc space for scheduler */
 	if ((scheduler = (scheduler_t*)malloc(sizeof(scheduler_t))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 	}
 
-	scheduler->threadID_count 		= 2;	// Reserve 0 and 1 for scheduler and main threads (just in case)
+	scheduler->threadID_count 		= 2;	// Reserve 0 and 1 for scheduler and main threads respectively 
 	scheduler->currently_running 	= NULL;
 
 	/* Initialize each priority queue (thread_unit_list) */
@@ -250,10 +234,10 @@ void scheduler_init(){
 	/* Initialize the currently running and waiting queues */
 	scheduler->running = thread_list_init();
 	scheduler->waiting = thread_list_init();
-	
 
-
-	/* TODO: build ucontext of the scheduler (func* to scheduler_sig_handler) */
+	/**********************************************************************************
+		SETUP THREAD_UNITS FOR MAINTENANCE AND MAIN THREADS   
+    **********************************************************************************/
 
 	if((main_thread_unit = (thread_unit*)malloc(sizeof(thread_unit))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
@@ -276,15 +260,8 @@ void scheduler_init(){
 	main_thread_unit->thread->priority = 0;
 	main_thread_unit->thread->thread_unit = main_thread_unit;
 
-	// maintenance_thread_unit->state	= READY; 
 
-
-
-
-
-    /**********************************************************************************
-		MAIN_UCONTEXT SETUP   
-    **********************************************************************************/
+	/* MAIN UCONTEXT SETUP */
 
 	/* Attempt to malloc space for main_ucontext */
 	if ((main_thread_unit->ucontext = (ucontext_t*)malloc(sizeof(ucontext_t))) == NULL){
@@ -311,12 +288,9 @@ void scheduler_init(){
 	/* Assign func* to ucontext */
 	makecontext(main_thread_unit->ucontext, (void*)scheduler_sig_handler, 1, NULL); 	// Should we write a separate scheduler_run_thread call?
     
-    /**********************************************************************************/
 
-	/**********************************************************************************
-		MAINTENANCE_UCONTEXT SETUP   
-    **********************************************************************************/
-
+	/* MAINTENANCE UCONTEXT SETUP */
+	
 	/* Attempt to malloc space for maintenance_ucontext */
 	if ((maintenance_thread_unit->ucontext = (ucontext_t*)malloc(sizeof(ucontext_t))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
@@ -342,27 +316,21 @@ void scheduler_init(){
 
 	/* Assign func* to ucontext */
 	makecontext(maintenance_thread_unit->ucontext, (void*)maintenance_cycle, 1, NULL); 	// Should we write a separate scheduler_run_thread call?
-     
-    /**********************************************************************************/
+	
+	/* </end> UCONTEXT STUFF */     
 
 
 
-
-	/*
-		TODO: 
-		Create thread_units for main thread and scheduler/maintenance thread
-			Similar to thread_unit_init(pthread ptr*) except these two do not have
-			pthreads. 
-	*/
-
-
-	/* SETTING MAIN_THREAD TO PRIORITY ZERO */
+	/* Enqueue main thread_unit for scheduling */
 	thread_list_enqueue(scheduler->priority_array[0], main_thread_unit);
-	// //scheduler->currently_running = main_thread_unit;
-	// thread_list_enqueue(scheduler->running, main_thread_unit); 
+	// FYI.  scheduler_init ends with a call to yield.  Yield will call 
+	// 			the maint_cycle.  The maint_cycle will push the main_thread
+	// 			to the running queue.
 
+
+	/* TODO:  One of these makes the other obsolete.  Remove one.*/
 	scheduler->initialized = 1;
-
+	scheduler_initialized = 1;
 
 
     /**********************************************************************************
@@ -381,7 +349,7 @@ void scheduler_init(){
 
 	/* Direct sig-alarms to scheduler_sig_handler */
 	signal(SIGALRM, &scheduler_sig_handler);
-	scheduler_sig_handler();
+	my_pthread_yield();
 
 }
 
@@ -404,10 +372,11 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 	SYS_MODE = 1;
 
 
-	/*
-		TODO:   For the first run of create, run scheduler_init(). 
-		Use the first_run_complete global? 
-	*/
+	/* On first call of create(), init the scheduler. */
+	if(scheduler_initialized == 0){
+		scheduler_init();
+	}
+
 
 
 	// if ((thread = (my_pthread_t*)malloc(sizeof(my_pthread_t))) == NULL){
@@ -482,7 +451,6 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 }
 
 
-
 void my_pthread_yield(){
 	/* 
 		Run next thread in the running queue.  If the running queue is empty, run maint_cycle. 
@@ -529,7 +497,7 @@ void my_pthread_yield(){
 
 
 	/* Set timer */
-    timer.it_value.tv_sec 		= 1;			// Time remaining until next expiration (sec)
+    timer.it_value.tv_sec 		= 0;			// Time remaining until next expiration (sec)
     timer.it_interval.tv_sec 	= 0;			// Interval for periodic timer (sec)
     timer.it_interval.tv_usec 	= 0;			// "" (microseconds)
     setitimer(ITIMER_REAL, &timer, NULL);
@@ -539,11 +507,7 @@ void my_pthread_yield(){
 
     /* Run next thread in line */
 	scheduler_runThread(thread_up_next, prev);
-
-
 }
-
-
 
 
 void my_pthread_exit(void *value_ptr){
@@ -764,65 +728,31 @@ void _debugging_pthread_join(){
 
 
 
-	printf("\nPrinting thread list.  Should include pthreads 2 to 6.\n");
+	printf("\nPrinting thread list(Inside main).  Should include pthreads 2 to 6.\n");
 	_print_thread_list(scheduler->priority_array[0]);
 
 
-	/* Wait 2 seconds, and then have thread 5 join thread 2. */
-
-	my_pthread_join(pthread_array[0], NULL);
+	/* Main joins on thread2 */
+	// my_pthread_join(pthread_array[0], NULL);
 
 	while(1){
-
 		usleep(500000);
-		printf("Executing main!\n");
+		printf("\tExecuting main!\n");
 	}
-}
-
-
-void _debugging_pthread_yield(){
-
-
-	printf(ANSI_COLOR_RED "\n\nRunning pthread_yield() debug test...\n\n" ANSI_COLOR_RESET);
-	
-	int NUM_PTHREADS = 5;
-
-
-	/* init scheduler...calls sig handler */
-	// Move this into the first run of pthread_create() 
-	scheduler_init();
-
-	my_pthread_t pthread_array[NUM_PTHREADS];
-	my_pthread_attr_t* 	useless_attr;
-	int i;
-
-	for(i=0; i<NUM_PTHREADS;i++){
-
-		
-		if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f1, (void*) i)){
-			printf(ANSI_COLOR_GREEN "Successfully created pthread and enqueued.\n" ANSI_COLOR_RESET);
-		}
-	} 
-
-	printf("\nPrinting thread list.  Should include pthreads 2 to 6.\n");
-	_print_thread_list(scheduler->priority_array[0]);
-
-
-
-		
-
-	while(1);	
-	printf(ANSI_COLOR_RED "End pthread_yield() debug test." ANSI_COLOR_RESET);
-
 }
 
 
 
 int main(){
 
+	/* 
+		View the debugging.c file to view the old debugging functions.
+		NOTE:  They might not all work.  Stuff might have changed since then 
+	*/
+
 	// _debugging_thread_unit_lib();
 	// _debugging_pthread_create();
+	// _debugging_pthread_yield();
 
 	_debugging_pthread_join();
-
 }

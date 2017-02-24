@@ -121,3 +121,42 @@ void _debugging_pthread_create(){
 
 	printf(ANSI_COLOR_RED "End pthread_create() debug test." ANSI_COLOR_RESET);
 }
+
+
+
+void _debugging_pthread_yield(){
+
+
+	printf(ANSI_COLOR_RED "\n\nRunning pthread_yield() debug test...\n\n" ANSI_COLOR_RESET);
+	
+	int NUM_PTHREADS = 5;
+
+
+	/* init scheduler...calls sig handler */
+	// Move this into the first run of pthread_create() 
+	scheduler_init();
+
+	my_pthread_t pthread_array[NUM_PTHREADS];
+	my_pthread_attr_t* 	useless_attr;
+	int i;
+
+	for(i=0; i<NUM_PTHREADS;i++){
+
+		
+		if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f1, (void*) i)){
+			printf(ANSI_COLOR_GREEN "Successfully created pthread and enqueued.\n" ANSI_COLOR_RESET);
+		}
+	} 
+
+	printf("\nPrinting thread list.  Should include pthreads 2 to 6.\n");
+	_print_thread_list(scheduler->priority_array[0]);
+
+
+
+		
+
+	while(1);	
+	printf(ANSI_COLOR_RED "End pthread_yield() debug test." ANSI_COLOR_RESET);
+
+}
+
