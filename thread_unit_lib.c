@@ -200,3 +200,29 @@ void _print_thread_list(thread_unit_list* list){
 	}
 
 }
+
+
+
+
+/* DEBUGGING ONLY: Print out thread wait list */
+void _print_thread_waitlist(thread_unit_list* list){
+
+	thread_unit* temp;
+
+	if(!thread_list_isempty(list)){
+		temp = list->head;
+
+		while(temp != NULL){
+			_print_thread_unit(temp);
+
+			temp = temp->wait_next;
+		}
+
+	}else if(list->head == NULL){
+		printf(ANSI_COLOR_CYAN "List head is NULL. \n" ANSI_COLOR_RESET);
+
+	}else{
+		printf(ANSI_COLOR_CYAN "Empty thread unit list. \n" ANSI_COLOR_RESET);
+	}
+
+}

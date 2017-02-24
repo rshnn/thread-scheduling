@@ -29,5 +29,7 @@ void priority_level_sort(void);
 const char* _stringify_state(state s);
 void _print_thread_unit(thread_unit* unit);
 void _print_thread_list(thread_unit_list* list);
+void _print_thread_waitlist(thread_unit_list* list);
+
 
 #endif

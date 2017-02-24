@@ -175,6 +175,8 @@ void maintenance_cycle(){
 		}
 	}
 
+	printf(ANSI_COLOR_YELLOW "The old waiting queue:\n"ANSI_COLOR_RESET);
+	_print_thread_waitlist(scheduler->waiting);
 
 
 	/**********************************************************************************
@@ -208,6 +210,8 @@ void maintenance_cycle(){
 	printf(ANSI_COLOR_YELLOW "The new running queue:\n" ANSI_COLOR_RESET);
 	_print_thread_list(scheduler->running);
 
+	printf(ANSI_COLOR_YELLOW "The new waiting queue:\n"ANSI_COLOR_RESET);
+	_print_thread_waitlist(scheduler->waiting);
 
 	printf(ANSI_COLOR_YELLOW "The current priority[0] queue:\n" ANSI_COLOR_RESET);
 	_print_thread_list(scheduler->priority_array[0]);
@@ -263,9 +267,14 @@ void scheduler_init(){
 
 	main_thread_unit->state = READY;
 	main_thread_unit->time_slice = TIME_QUANTUM;
-	main_thread_unit->run_count = 0;
+	main_thread_unit->run_count = 1;
 	main_thread_unit->wait_next = NULL;
 	main_thread_unit->next = NULL;
+
+	main_thread_unit->thread = (my_pthread_t*)malloc(sizeof(my_pthread_t));
+	main_thread_unit->thread->threadID = 1;
+	main_thread_unit->thread->priority = 0;
+	main_thread_unit->thread->thread_unit = main_thread_unit;
 
 	// maintenance_thread_unit->state	= READY; 
 
@@ -347,7 +356,10 @@ void scheduler_init(){
 	*/
 
 
-
+	/* SETTING MAIN_THREAD TO PRIORITY ZERO */
+	thread_list_enqueue(scheduler->priority_array[0], main_thread_unit);
+	// //scheduler->currently_running = main_thread_unit;
+	// thread_list_enqueue(scheduler->running, main_thread_unit); 
 
 	scheduler->initialized = 1;
 
@@ -390,6 +402,13 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 
 	/* ASSUME PTHREAD ALREADY HAS SPACE ALLOCATED TO IT FROM USER */
 	SYS_MODE = 1;
+
+
+	/*
+		TODO:   For the first run of create, run scheduler_init(). 
+		Use the first_run_complete global? 
+	*/
+
 
 	// if ((thread = (my_pthread_t*)malloc(sizeof(my_pthread_t))) == NULL){
 	// 	printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
@@ -465,7 +484,13 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 
 
 void my_pthread_yield(){
-	/* Run next thread in the running queue.  If the running queue is empty, run maint_cycle. */
+	/* 
+		Run next thread in the running queue.  If the running queue is empty, run maint_cycle. 
+		
+		When this function is called, scheduler->running->iter is already pointing to the 
+		next thread to be run.  scheduler->currently_running is pointing to the thread that just
+		finished execution.
+	*/
 
 	SYS_MODE = 1;
 
@@ -475,7 +500,8 @@ void my_pthread_yield(){
 
 	/* Currently_running is the one that just finished running */
 	if(!thread_list_isempty(scheduler->running) && scheduler->currently_running != NULL){
-		if(scheduler->currently_running->state != TERMINATED){
+		if((scheduler->currently_running->state != TERMINATED) &&
+			(scheduler->currently_running->state != WAITING)){
 			scheduler->currently_running->state = READY;
 		}
 		scheduler->currently_running->run_count++;
@@ -503,7 +529,7 @@ void my_pthread_yield(){
 
 
 	/* Set timer */
-    timer.it_value.tv_sec 		= 2;			// Time remaining until next expiration (sec)
+    timer.it_value.tv_sec 		= 1;			// Time remaining until next expiration (sec)
     timer.it_interval.tv_sec 	= 0;			// Interval for periodic timer (sec)
     timer.it_interval.tv_usec 	= 0;			// "" (microseconds)
     setitimer(ITIMER_REAL, &timer, NULL);
@@ -583,8 +609,9 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr){
 		printf("Thread to join does not exist\n");
 		return -1;
 	}
-	if(scheduler->currently_running->thread->threadID = thread.threadID){
-		printf("Trying to join itself\n");
+	if(scheduler->currently_running->thread->threadID == thread.threadID){
+		printf("Trying to join itself. curr_running->thread->threadID: %ld and thread.threadID: %ld\n",
+		 scheduler->currently_running->thread->threadID, thread.threadID);
 		return -1;
 	}
 	if(scheduler->currently_running->state != RUNNING){
@@ -595,9 +622,38 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr){
 	scheduler->currently_running->state = WAITING;
 	scheduler->currently_running->thread->return_val = value_ptr;
 
-	// while(thread.state != TERMINATED){
-	// 	my_pthread_yield();
-	// }
+
+	/*******************************************************/
+
+	/* 
+		TEMP FOR TESTING
+			Adding curr_running to the waiting queue.  This job will be done by the scheduler.
+			Move this stuff there when ready.
+			NOTE:  using wait_next. NOT the enqueue functions. 
+	*/
+
+	thread_unit* unit 	= scheduler->currently_running;
+	//unit->wait_next 	= NULL;
+
+	// Enqueue on an empty list
+	if(thread_list_isempty(scheduler->waiting)){
+		scheduler->waiting->head 			= unit;
+		scheduler->waiting->tail 			= unit;
+		scheduler->waiting->iter 			= unit;
+
+	// Default: Add at end and redirect tail
+	}else{
+		scheduler->waiting->tail->wait_next		= unit;
+		scheduler->waiting->tail 				= unit;
+	}
+
+	scheduler->waiting->size++;
+	/*******************************************************/	
+
+
+
+
+	my_pthread_yield();
 
 }
 
@@ -633,11 +689,12 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 
 /*
 	Function for testing
+		Loop: sleep for 0.5s, and then print.
 */
 void f1(int x){
 
 	while(1){
-		sleep(1);
+		usleep(500000);
 		printf("\tExecuting f1:\tArg is %i\n", x);
 	
 	}
@@ -645,6 +702,25 @@ void f1(int x){
 	my_pthread_exit(NULL);
 }
 
+void f2(int x){
+
+
+	printf("\tExecuting f2:\tArg is %i.\n", x);
+
+	sleep(15);
+	printf("\tf2 completes execution.\n");
+
+	// my_pthread_exit(NULL	);
+}
+
+void f3(my_pthread_t* thread){
+
+	printf("\tExecuting f3\tJoins thread %ld\n", thread->threadID);
+
+	my_pthread_join(*thread, NULL);
+
+
+}
 
 
 
@@ -664,18 +740,43 @@ void _debugging_pthread_join(){
 
 	for(i=0; i<NUM_PTHREADS;i++){
 
+		/* Give last pthread functionptr to f2 (f2 terminates after a few seconds) */
+		if(i == 0){
+			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f2, (void*) i)){
+				printf(ANSI_COLOR_GREEN "Successfully created f2 pthread and enqueued.\n" ANSI_COLOR_RESET);
+			}
+			continue;
+		}
 		
+		/* Give last pthread functionptr to f3 (f2 joins thread 1) */
+		if(i == 1){
+			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f3, (void*) &pthread_array[0])){
+				printf(ANSI_COLOR_GREEN "Successfully created f3 pthread and enqueued.\n" ANSI_COLOR_RESET);
+			}
+			continue;
+		}
+
+
 		if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f1, (void*) i)){
-			printf(ANSI_COLOR_GREEN "Successfully created pthread and enqueued.\n" ANSI_COLOR_RESET);
+			printf(ANSI_COLOR_GREEN "Successfully created f1 pthread and enqueued.\n" ANSI_COLOR_RESET);
 		}
 	} 
+
+
 
 	printf("\nPrinting thread list.  Should include pthreads 2 to 6.\n");
 	_print_thread_list(scheduler->priority_array[0]);
 
 
-	while(1);
+	/* Wait 2 seconds, and then have thread 5 join thread 2. */
 
+	my_pthread_join(pthread_array[0], NULL);
+
+	while(1){
+
+		usleep(500000);
+		printf("Executing main!\n");
+	}
 }
 
 
@@ -688,6 +789,7 @@ void _debugging_pthread_yield(){
 
 
 	/* init scheduler...calls sig handler */
+	// Move this into the first run of pthread_create() 
 	scheduler_init();
 
 	my_pthread_t pthread_array[NUM_PTHREADS];
@@ -709,8 +811,7 @@ void _debugging_pthread_yield(){
 
 		
 
-	while(1);
-
+	while(1);	
 	printf(ANSI_COLOR_RED "End pthread_yield() debug test." ANSI_COLOR_RESET);
 
 }
@@ -722,6 +823,6 @@ int main(){
 	// _debugging_thread_unit_lib();
 	// _debugging_pthread_create();
 
-	_debugging_pthread_yield();
+	_debugging_pthread_join();
 
 }
