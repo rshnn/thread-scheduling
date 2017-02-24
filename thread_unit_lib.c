@@ -35,6 +35,8 @@ thread_unit* thread_unit_init(my_pthread_t* pthread){
 	tu->next 			= NULL;
 	tu->wait_next 		= NULL;
 
+	tu->waiting_on_me 	= thread_list_init();
+
 	return tu;
 }
 
@@ -238,7 +240,7 @@ const char* _stringify_state(state s){
 
 /* DEBUGGING ONLY: Print out thread unit */
 void _print_thread_unit(thread_unit* unit){
-	printf(ANSI_COLOR_CYAN "TheadID: %ld \t State: %s \t Run count: %i\n" ANSI_COLOR_RESET,
+	printf(ANSI_COLOR_CYAN "TheadID: %ld\t State: %s\t\tRun count: %i\n" ANSI_COLOR_RESET,
 	 unit->thread->threadID, _stringify_state(unit->state), unit->run_count);
 }
 

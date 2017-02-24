@@ -112,8 +112,12 @@ typedef struct thread_unit_ {
 	int                 		time_slice;
 	int                 		run_count;
 	int 						priority;
-    int							joinedID;
+    long int					joinedID;
     struct thread_unit_* 		next;
+
+    struct thread_unit_list_* 	waiting_on_me;
+
+
 	struct thread_unit_*		wait_next;
 	struct thread_unit_*		wait_prev;
 

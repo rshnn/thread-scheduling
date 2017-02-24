@@ -497,7 +497,7 @@ void my_pthread_yield(){
 
 
 	/* Set timer */
-    timer.it_value.tv_sec 		= 0;			// Time remaining until next expiration (sec)
+    timer.it_value.tv_sec 		= 1;			// Time remaining until next expiration (sec)
     timer.it_interval.tv_sec 	= 0;			// Interval for periodic timer (sec)
     timer.it_interval.tv_usec 	= 0;			// "" (microseconds)
     setitimer(ITIMER_REAL, &timer, NULL);
@@ -524,42 +524,71 @@ void my_pthread_exit(void *value_ptr){
 
 	SYS_MODE = 1;
 
+	printf(ANSI_COLOR_GREEN"\tThe thread (TID: %ld) is exiting.\n" ANSI_COLOR_RESET, 
+		scheduler->currently_running->thread->threadID);
+
 	if(scheduler->currently_running->state == TERMINATED){
 		printf("This thread, TID %ld, has already been terminated.\n", scheduler->currently_running->thread->threadID);
 	}
 
-	scheduler->currently_running->state = TERMINATED;
-	scheduler->currently_running->thread->threadID = -1;
+
+
+	printf("\tThese are the guys waiting on thread %ld:\n", 
+		scheduler->currently_running->thread->threadID);
+	_print_thread_list_wait(scheduler->currently_running->waiting_on_me);
+
+	/* Testing */
+
+	thread_unit* temp;
+	while(!thread_list_isempty(scheduler->currently_running->waiting_on_me)){
+
+		if((temp = thread_list_dequeue_wait(scheduler->currently_running->waiting_on_me)) != NULL){
+			temp->state = READY;
+			temp->thread->return_val = value_ptr;
+
+		}	
+	}
+
+	/* TODO:  it is the maint_cycle's job to clean up the waiting_queue.  Or is it useless again? */
+
 	/*
 		Now we loop through the waiting queue to store the return val into 
 		the return_val for threads that had joined it
 		Also set their states to READY (they are no longer WAITING)
 	*/
-	thread_unit* temp = scheduler->waiting->head;
-	thread_unit* prev = NULL;
-	while(temp != NULL){
-		if(temp->joinedID == scheduler->currently_running->thread->threadID){
-			// remove thread from waiting list and change state to READY
-			// consider case for head
-			temp->state = READY;
-			temp->thread->return_val = value_ptr;
-			if(prev == NULL){
-				scheduler->waiting->head = temp->wait_next;
-			}else{
-				prev->wait_next = temp->wait_next;
-			}
-		}
-		prev = temp;
-		temp = temp->wait_next;
-	}
+	// thread_unit* temp = scheduler->waiting->head;
+	// thread_unit* prev = NULL;
+	// while(temp != NULL){
+	// 	if(temp->joinedID == scheduler->currently_running->thread->threadID){
+	// 		// remove thread from waiting list and change state to READY
+	// 		// consider case for head
+	// 		printf("\tThe following is now READY:\tTID %ld\n", temp->thread->threadID);
+	// 		temp->state = READY;
+	// 		temp->thread->return_val = value_ptr;
+	// 		/* This should be done in the maint_cycle? */
+	// 		if(prev == NULL){
+	// 			scheduler->waiting->head = temp->wait_next;
+	// 		}else{
+	// 			prev->wait_next = temp->wait_next;
+	// 		}
+	// 	}
+	// 	prev = temp;
+	// 	temp = temp->wait_next;
+	// }
+
+	scheduler->currently_running->state 			= TERMINATED;
+	scheduler->currently_running->thread->threadID 	= -1;
+
+
+
 	/* Free malloced memory and cleanup */
-	free(scheduler->currently_running->thread);
+
+	// free(scheduler->currently_running->thread);  // The user is responsible for my_pthread_t memory allocation
 	free(scheduler->currently_running->ucontext->uc_stack.ss_sp);
 	free(scheduler->currently_running->ucontext);
 	//	free(scheduler->currently_running);  // Keep the thread_unit around for scheduler book keeping 
 
 	my_pthread_yield();
-
 }
 
 
@@ -582,43 +611,51 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr){
 		printf("Not possible to join because I am not ready\n");
 		return -1;
 	}
+
+	printf("\tI am joining Thread %ld\n", thread.threadID);
+
 	scheduler->currently_running->joinedID = thread.threadID;
 	scheduler->currently_running->state = WAITING;
 	scheduler->currently_running->thread->return_val = value_ptr;
 
 
+	/* Testing waiting_on_me */
+	thread_list_enqueue_wait(thread.thread_unit->waiting_on_me, scheduler->currently_running);
+
+
+	thread_list_enqueue_wait(scheduler->waiting, scheduler->currently_running);
+
 	/*******************************************************/
 
-	/* 
-		TEMP FOR TESTING
-			Adding curr_running to the waiting queue.  This job will be done by the scheduler.
-			Move this stuff there when ready.
-			NOTE:  using wait_next. NOT the enqueue functions. 
-	*/
+	// /* 
+	// 	TEMP FOR TESTING
+	// 		Adding curr_running to the waiting queue.  This job will be done by the scheduler.
+	// 		Move this stuff there when ready.
+	// 		NOTE:  using wait_next. NOT the enqueue functions. 
+	// */
 
-	thread_unit* unit 	= scheduler->currently_running;
-	//unit->wait_next 	= NULL;
+	// thread_unit* unit 	= scheduler->currently_running;
+	// //unit->wait_next 	= NULL;
 
-	// Enqueue on an empty list
-	if(thread_list_isempty(scheduler->waiting)){
-		scheduler->waiting->head 			= unit;
-		scheduler->waiting->tail 			= unit;
-		scheduler->waiting->iter 			= unit;
+	// // Enqueue on an empty list
+	// if(thread_list_isempty(scheduler->waiting)){
+	// 	scheduler->waiting->head 			= unit;
+	// 	scheduler->waiting->tail 			= unit;
+	// 	scheduler->waiting->iter 			= unit;
 
-	// Default: Add at end and redirect tail
-	}else{
-		scheduler->waiting->tail->wait_next		= unit;
-		scheduler->waiting->tail 				= unit;
-	}
+	// // Default: Add at end and redirect tail
+	// }else{
+	// 	scheduler->waiting->tail->wait_next		= unit;
+	// 	scheduler->waiting->tail 				= unit;
+	// }
 
-	scheduler->waiting->size++;
-	/*******************************************************/	
+	// scheduler->waiting->size++;
+	// /*******************************************************/	
 
 
 
 
 	my_pthread_yield();
-
 }
 
 
@@ -674,7 +711,8 @@ void f2(int x){
 	sleep(15);
 	printf("\tf2 completes execution.\n");
 
-	// my_pthread_exit(NULL	);
+	my_pthread_exit(NULL);
+
 }
 
 void f3(my_pthread_t* thread){
@@ -695,11 +733,10 @@ void _debugging_pthread_join(){
 	int NUM_PTHREADS = 5;
 
 
-	/* init scheduler...calls sig handler */
-	scheduler_init();
+	// my_pthread_t pthread_array[NUM_PTHREADS];
+	my_pthread_t* pthread_array = (my_pthread_t*)malloc(NUM_PTHREADS * sizeof(my_pthread_t));
+	my_pthread_attr_t* useless_attr;
 
-	my_pthread_t pthread_array[NUM_PTHREADS];
-	my_pthread_attr_t* 	useless_attr;
 	int i;
 
 	for(i=0; i<NUM_PTHREADS;i++){
@@ -707,7 +744,8 @@ void _debugging_pthread_join(){
 		/* Give last pthread functionptr to f2 (f2 terminates after a few seconds) */
 		if(i == 0){
 			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f2, (void*) i)){
-				printf(ANSI_COLOR_GREEN "Successfully created f2 pthread and enqueued.\n" ANSI_COLOR_RESET);
+				printf(ANSI_COLOR_GREEN "Successfully created f2 pthread and enqueued. TID %ld\n" 
+					ANSI_COLOR_RESET, pthread_array[i].threadID);
 			}
 			continue;
 		}
@@ -715,25 +753,27 @@ void _debugging_pthread_join(){
 		/* Give last pthread functionptr to f3 (f2 joins thread 1) */
 		if(i == 1){
 			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f3, (void*) &pthread_array[0])){
-				printf(ANSI_COLOR_GREEN "Successfully created f3 pthread and enqueued.\n" ANSI_COLOR_RESET);
+				printf(ANSI_COLOR_GREEN "Successfully created f3 pthread and enqueued. TID %ld\n" 
+					ANSI_COLOR_RESET, pthread_array[i].threadID);
 			}
 			continue;
 		}
 
 
 		if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f1, (void*) i)){
-			printf(ANSI_COLOR_GREEN "Successfully created f1 pthread and enqueued.\n" ANSI_COLOR_RESET);
+			printf(ANSI_COLOR_GREEN "Successfully created f1 pthread and enqueued. TID %ld\n" 
+					ANSI_COLOR_RESET, pthread_array[i].threadID);
 		}
 	} 
 
 
 
-	printf("\nPrinting thread list(Inside main).  Should include pthreads 2 to 6.\n");
+	printf("\nPrinting priority array 0 (Inside main).  Should include pthreads 2 to 6.\n");
 	_print_thread_list(scheduler->priority_array[0]);
 
 
 	/* Main joins on thread2 */
-	// my_pthread_join(pthread_array[0], NULL);
+	my_pthread_join(pthread_array[0], NULL);
 
 	while(1){
 		usleep(500000);
