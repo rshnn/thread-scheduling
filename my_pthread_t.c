@@ -731,7 +731,6 @@ int my_pthread_mutex_init(my_pthread_mutex_t *mutex, const my_pthread_mutexattr_
 int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 	//idea here is to pass ownership of the lock to next in queue instead of checking if the lock is available
 	//only do we actually set the lock to 1 once we call lock for an empty queue
-	
 
 	thread_unit* temp = mutex->waiting_queue;
 	if(mutex->initialized == 0){
@@ -748,6 +747,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 		printf("lock is in use, adding myself to the mutex waiting queue for lock %d\n",mutex->lock); 
 		if(temp == NULL){
 			mutex->waiting_queue = scheduler->currently_running;
+			printf("TID %ld has been added to the waiting queue.\n",scheduler->currently_running->thread->threadID);
 			scheduler->currently_running->state == WAITING;
 			my_pthread_yield();
 			//when thread resumes, it should be getting the lock
@@ -804,6 +804,7 @@ void resetTheTimer(){
 	thread_unit* 		thread_up_next = NULL;
 	thread_unit* 		prev = scheduler->currently_running;
 
+	printf("Resetting timer.\n");
 	/* Set timer */
     timer.it_value.tv_sec 		= 0;			// Time remaining until next expiration (sec)
     timer.it_value.tv_usec 		= TIMER_MULTIPLE*TIME_QUANTUM;	// wait 50ms if running queue is empty. 
