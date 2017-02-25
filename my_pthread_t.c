@@ -752,7 +752,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 
 			//mutex->waiting_queue = scheduler->currently_running;
 			printf("TID %ld has been added to the waiting queue.\n",scheduler->currently_running->thread->threadID);
-			scheduler->currently_running->state == WAITING;
+			scheduler->currently_running->state = WAITING;
 			_print_thread_unit(scheduler->currently_running);
 			my_pthread_yield();
 
