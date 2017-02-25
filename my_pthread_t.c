@@ -640,7 +640,7 @@ void my_pthread_exit(void *value_ptr){
 
 
 	scheduler->currently_running->state 			= TERMINATED;
-	scheduler->currently_running->thread->threadID 	= -1;
+	// scheduler->currently_running->thread->threadID 	= -1;
 
 
 	my_pthread_yield();
