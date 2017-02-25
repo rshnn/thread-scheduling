@@ -610,11 +610,11 @@ void my_pthread_exit(void *value_ptr){
 	}
 
 
-	if(scheduler->currently_running->waiting_on_me != NULL){
-		printf("\tThese are the guys waiting on thread %ld:\n", 
-			scheduler->currently_running->thread->threadID);
-		_print_thread_list_wait(scheduler->currently_running->waiting_on_me);
-	}
+	// if(scheduler->currently_running->waiting_on_me != NULL){
+	// 	printf("\tThese are the guys waiting on thread %ld:\n", 
+	// 		scheduler->currently_running->thread->threadID);
+	// 	// _print_thread_list_wait(scheduler->currently_running->waiting_on_me);
+	// }
 
 	thread_unit* temp;
 	while(!thread_list_isempty(scheduler->currently_running->waiting_on_me)){
