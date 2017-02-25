@@ -232,7 +232,8 @@ void maintenance_cycle(){
 			}else{
 				printf("in else\n");
 				_print_thread_unit(temp);
-				free(temp->ucontext->uc_stack.ss_sp);
+				
+				// free(temp->ucontext->uc_stack.ss_sp);
 				printf("success 1\n");
 				free(temp->ucontext);
 				printf("success 2\n");
