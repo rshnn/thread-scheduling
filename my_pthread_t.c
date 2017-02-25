@@ -971,6 +971,7 @@ void m1(my_pthread_t* thread){
 	sleep(5);
 
 	my_pthread_mutex_unlock(&mutex);
+	printf("\tTID %ld is releasing the lock.", thread->threadID);
 
 	my_pthread_exit(NULL);
 }
