@@ -29,7 +29,28 @@
 #define PAGE_SIZE 			4096					// Stack size defaults to page size
 #define PRIORITY_LEVELS 	6						// Number of priority levels
 #define TIME_QUANTUM 		50000 					// 50 ms = 50000 us  
-#define RUNNING_TIME 		30						// Experimental value 
+#define RUNNING_TIME 		5						// Experimental value 
+
+
+
+// /* For testing with msort */
+
+// #define mypthread_create	my_pthread_create
+// #define mypthread_exit		my_pthread_exit
+// #define mypthread_yield		my_pthread_yield
+// #define mypthread_join		my_pthread_join
+
+// #define mypthread_mutex_init	my_pthread_mutex_init
+// #define mypthread_mutex_lock	my_pthread_mutex_lock
+// #define mypthread_mutex_trylock	my_pthread_mutex_trylock
+// #define mypthread_mutex_unlock	my_pthread_mutex_unlock
+// #define mypthread_mutex_destroy	my_pthread_mutex_destroy
+
+// #define mypthread_t		my_pthread_t
+// #define mypthread_attr_t	my_pthread_attr_t
+
+// #define mypthread_mutex_t	my_pthread_mutex_t
+// #define mypthread_mutex_attr_t	my_pthread_mutex_attr_t
 
 
 /************************************************************************************************************
@@ -203,7 +224,9 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr);
 int my_pthread_mutex_init(my_pthread_mutex_t *mutex, const my_pthread_mutexattr_t *mutexattr);
 int my_pthread_mutex_lock(my_pthread_mutex_t *mutex);
 int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex);
+int my_pthread_mutex_trylock(my_pthread_mutex_t* mutex);
 int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex);
+
 void resetTheTimer();
 
 

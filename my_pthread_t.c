@@ -623,32 +623,6 @@ void my_pthread_exit(void *value_ptr){
 		}	
 	}
 
-	/* TODO:  it is the maint_cycle's job to clean up the waiting_queue.  Or is it useless again? */
-
-	/*
-		Now we loop through the waiting queue to store the return val into 
-		the return_val for threads that had joined it
-		Also set their states to READY (they are no longer WAITING)
-	*/
-	// thread_unit* temp = scheduler->waiting->head;
-	// thread_unit* prev = NULL;
-	// while(temp != NULL){
-	// 	if(temp->joinedID == scheduler->currently_running->thread->threadID){
-	// 		// remove thread from waiting list and change state to READY
-	// 		// consider case for head
-	// 		printf("\tThe following is now READY:\tTID %ld\n", temp->thread->threadID);
-	// 		temp->state = READY;
-	// 		temp->thread->return_val = value_ptr;
-	// 		/* This should be done in the maint_cycle? */
-	// 		if(prev == NULL){
-	// 			scheduler->waiting->head = temp->wait_next;
-	// 		}else{
-	// 			prev->wait_next = temp->wait_next;
-	// 		}
-	// 	}
-	// 	prev = temp;
-	// 	temp = temp->wait_next;
-	// }
 
 	scheduler->currently_running->state 			= TERMINATED;
 	scheduler->currently_running->thread->threadID 	= -1;
@@ -681,7 +655,8 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr){
 
 	scheduler->currently_running->joinedID = thread.threadID;
 	scheduler->currently_running->state = WAITING;
-	scheduler->currently_running->thread->return_val = value_ptr;
+	//my_pthread_yield();
+	// scheduler->currently_running->thread->return_val = value_ptr;
 
 	thread_list_enqueue_wait(thread.thread_unit->waiting_on_me, scheduler->currently_running);
 
@@ -719,6 +694,10 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr){
 
 
 	my_pthread_yield();
+	if(value_ptr != NULL){
+		*value_ptr = scheduler->currently_running->thread->return_val;
+	}
+	return 0;
 }
 
 
@@ -900,7 +879,16 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 }
 
 
+int my_pthread_mutex_trylock(my_pthread_mutex_t* mutex){
 
+	if(mutex->lock == 1){
+		return -1;
+	}else{
+		my_pthread_mutex_lock(mutex);
+		return 0;
+	}
+
+}
 	
 
 /************************************************************************************************************
@@ -929,15 +917,19 @@ void f2(int x){
 
 	//printf("\tExecuting f2:\tArg is %i.\n", x);
 
-	//sleep(40);
+	sleep(10);
 	
-	while(1){
-		usleep(100000);
-		printf("\tExecuting f2:\tArg is %i.\n", x);
-	}
+	// while(1){
+	// 	usleep(100000);
+	// 	printf("\tExecuting f2:\tArg is %i.\n", x);
+	// }
 	printf("\tf2 completes execution.\n");
 
-	my_pthread_exit(NULL);
+	char* a;
+	a = (char*) malloc(sizeof(char));
+
+    strcpy(a,"hello world");
+    my_pthread_exit((void*)a);
 
 }
 
@@ -945,7 +937,12 @@ void f3(my_pthread_t* thread){
 
 	printf("\tExecuting f3\tJoins thread %ld\n", thread->threadID);
 
-	my_pthread_join(*thread, NULL);
+	char* receive;
+
+	my_pthread_join(*thread, (void**)&receive);
+	
+
+	printf("\tI got this: %s\n", (char*) receive);
 	my_pthread_exit(NULL);
 
 }
@@ -956,7 +953,7 @@ void _debugging_pthread_join(){
 
 	printf(ANSI_COLOR_RED "\n\nRunning pthread_join() debug test...\n\n" ANSI_COLOR_RESET);
 	
-	int NUM_PTHREADS = 30;
+	int NUM_PTHREADS = 5;
 
 
 	// my_pthread_t pthread_array[NUM_PTHREADS];
@@ -1020,12 +1017,16 @@ void _debugging_pthread_join(){
 
 
 
+void _debugging_pthread_mutex(){
+
+}
+
 int main(){
 
-	/* 
-		View the debugging.c file to view the old debugging functions.
-		NOTE:  They might not all work.  Stuff might have changed since then 
-	*/
+	 
+		// View the debugging.c file to view the old debugging functions.
+		// NOTE:  They might not all work.  Stuff might have changed since then 
+	
 
 	// _debugging_thread_unit_lib();
 	// _debugging_pthread_create();
@@ -1033,3 +1034,4 @@ int main(){
 
 	_debugging_pthread_join();
 }
+
