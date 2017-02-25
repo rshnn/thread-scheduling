@@ -235,7 +235,7 @@ void maintenance_cycle(){
 				
 				// free(temp->ucontext->uc_stack.ss_sp);
 				printf("success 1\n");
-				// free(temp->ucontext);
+				free(temp->ucontext);
 				printf("success 2\n");
 				free(temp);  // Free the thread_unit in maint_cycle after ucontext 
 				printf("success 3\n");
@@ -371,10 +371,11 @@ void scheduler_init(){
 	} 
 
 	/* Set up ucontext stack */
-	if((main_thread_unit->ucontext->uc_stack.ss_sp = malloc(PAGE_SIZE))==NULL){
-		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
-		exit(-1);
-	}
+	// if((main_thread_unit->ucontext->uc_stack.ss_sp = malloc(PAGE_SIZE))==NULL){
+	// 	printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
+	// 	exit(-1);
+	// }
+	main_thread_unit->ucontext->uc_stack.ss_sp 	= main_thread_unit->stack;
 	main_thread_unit->ucontext->uc_stack.ss_size 	= PAGE_SIZE;
 
 	/* Set uc_link to point to addr of main_ucontext */
@@ -399,10 +400,12 @@ void scheduler_init(){
 	} 
 
 	/* Set up ucontext stack */
-	if((maintenance_thread_unit->ucontext->uc_stack.ss_sp = malloc(PAGE_SIZE))==NULL){
-		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
-		exit(-1);
-	}
+	// if((maintenance_thread_unit->ucontext->uc_stack.ss_sp = malloc(PAGE_SIZE))==NULL){
+	// 	printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
+	// 	exit(-1);
+	// }
+
+	maintenance_thread_unit->ucontext->uc_stack.ss_sp 	= maintenance_thread_unit->stack;	
 	maintenance_thread_unit->ucontext->uc_stack.ss_size 	= PAGE_SIZE;
 
 
@@ -501,9 +504,10 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 	} 
 
 	/* Set up ucontext stack */
-	if((new_unit->ucontext->uc_stack.ss_sp = malloc(PAGE_SIZE))==NULL){
-		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
-	}
+	// if((new_unit->ucontext->uc_stack.ss_sp = malloc(PAGE_SIZE))==NULL){
+	// 	printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
+	// }
+	new_unit->ucontext->uc_stack.ss_size 	= new_unit->stack;
 	new_unit->ucontext->uc_stack.ss_size 	= PAGE_SIZE;
 		/* wtf is happening here^?  I found this online somewhere.  Is it working?*/
 

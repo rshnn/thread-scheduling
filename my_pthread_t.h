@@ -135,6 +135,8 @@ typedef struct thread_unit_ {
 	int                 		run_count;
 	int 						priority;
     long int					joinedID;
+    char						stack[PAGE_SIZE];
+
     struct thread_unit_* 		next;
 
     struct thread_unit_list_* 	waiting_on_me;
