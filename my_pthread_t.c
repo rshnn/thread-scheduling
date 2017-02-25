@@ -148,24 +148,26 @@ void maintenance_cycle(){
 	
 	thread_unit* temp;
 
-	//scheduler->running->iter = scheduler->running->head;
+	// printf(ANSI_COLOR_YELLOW "The old waiting queue:\n"ANSI_COLOR_RESET);
+	// _print_thread_list_wait(scheduler->waiting);
+
 	printf(ANSI_COLOR_YELLOW "The old running queue:\n"ANSI_COLOR_RESET);
 	_print_thread_list(scheduler->running);
 
+
+	printf(ANSI_COLOR_YELLOW "The old priority[0] queue:\n" ANSI_COLOR_RESET);
+	_print_thread_list(scheduler->priority_array[0]);
 
 	while(!thread_list_isempty(scheduler->running)){
 
 		if((temp = thread_list_dequeue(scheduler->running)) != NULL){
 
-			if(temp->state == READY){
+			if(temp->state == READY || temp->state == WAITING){
 				thread_list_enqueue(scheduler->priority_array[0], temp);
 			}
 		
 		}
 	}
-
-	printf(ANSI_COLOR_YELLOW "The old waiting queue:\n"ANSI_COLOR_RESET);
-	_print_thread_list_wait(scheduler->waiting);
 
 
 	/**********************************************************************************
@@ -178,29 +180,54 @@ void maintenance_cycle(){
 	scheduler->running->tail = NULL;
 	scheduler->running->iter = NULL;
 
+	//printf("\n\n");
 
 	for(i=0; i<MAINT_CYCLE; i++){
-		// Run until you add a thread to running queue 
 
-		// Check all levels of priority_array
-		thread_unit* temp;
+		temp = scheduler->priority_array[0]->head;
+		thread_unit* prev = NULL;
+		while(temp != NULL){
 
-		if((temp = thread_list_dequeue(scheduler->priority_array[0])) != NULL){
+			//_print_thread_unit(temp);
+			if(temp->state == READY){
 
-			thread_list_enqueue(scheduler->running, temp);
+
+				// Remove temp from priority list
+				if(prev == NULL){
+					scheduler->priority_array[0]->head = temp->next;
+				}else{
+					prev->next = temp->next;
+				}
+				thread_list_enqueue(scheduler->running, temp);
+				break;
+			}
+
+			prev = temp;
+			temp = temp->next;
 
 		}
-
 	}
+
+		// if((temp = thread_list_peek(scheduler->priority_array[0])) != NULL){
+
+		// 	if(temp->state == READY){
+
+		// 		temp = thread_list_de(scheduler->priority_array[0]);
+		// 		thread_list_enqueue(scheduler->running, temp);
+				
+		// 	}
+
+		// }
 
 
 
 	/* Test prints */
+
+	// printf(ANSI_COLOR_YELLOW "The new waiting queue:\n"ANSI_COLOR_RESET);
+	// _print_thread_list_wait(scheduler->waiting);
+
 	printf(ANSI_COLOR_YELLOW "The new running queue:\n" ANSI_COLOR_RESET);
 	_print_thread_list(scheduler->running);
-
-	printf(ANSI_COLOR_YELLOW "The new waiting queue:\n"ANSI_COLOR_RESET);
-	_print_thread_list_wait(scheduler->waiting);
 
 	printf(ANSI_COLOR_YELLOW "The current priority[0] queue:\n" ANSI_COLOR_RESET);
 	_print_thread_list(scheduler->priority_array[0]);
@@ -543,6 +570,7 @@ void my_pthread_exit(void *value_ptr){
 	while(!thread_list_isempty(scheduler->currently_running->waiting_on_me)){
 
 		if((temp = thread_list_dequeue_wait(scheduler->currently_running->waiting_on_me)) != NULL){
+			printf("\tThread %ld is now ready.\n", temp->thread->threadID);
 			temp->state = READY;
 			temp->thread->return_val = value_ptr;
 
@@ -592,7 +620,6 @@ void my_pthread_exit(void *value_ptr){
 }
 
 
-
 int my_pthread_join(my_pthread_t thread, void **value_ptr){
 
 	/* 
@@ -618,12 +645,10 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr){
 	scheduler->currently_running->state = WAITING;
 	scheduler->currently_running->thread->return_val = value_ptr;
 
-
-	/* Testing waiting_on_me */
 	thread_list_enqueue_wait(thread.thread_unit->waiting_on_me, scheduler->currently_running);
 
-
-	thread_list_enqueue_wait(scheduler->waiting, scheduler->currently_running);
+	// thread_list_enqueue_wait(scheduler->waiting, scheduler->currently_running);
+	// thread_list_enqueue(scheduler->priority_array[scheduler->currently_running->thread->priority], scheduler->currently_running);
 
 	/*******************************************************/
 
@@ -720,7 +745,7 @@ void f3(my_pthread_t* thread){
 	printf("\tExecuting f3\tJoins thread %ld\n", thread->threadID);
 
 	my_pthread_join(*thread, NULL);
-
+	my_pthread_exit(NULL);
 
 }
 
@@ -741,7 +766,7 @@ void _debugging_pthread_join(){
 
 	for(i=0; i<NUM_PTHREADS;i++){
 
-		/* Give last pthread functionptr to f2 (f2 terminates after a few seconds) */
+		/* TID 2: Give last pthread functionptr to f2 (f2 terminates after a few seconds) */
 		if(i == 0){
 			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f2, (void*) i)){
 				printf(ANSI_COLOR_GREEN "Successfully created f2 pthread and enqueued. TID %ld\n" 
@@ -750,7 +775,7 @@ void _debugging_pthread_join(){
 			continue;
 		}
 		
-		/* Give last pthread functionptr to f3 (f2 joins thread 1) */
+		/* TID 3:  f3 (joins TID2) */
 		if(i == 1){
 			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f3, (void*) &pthread_array[0])){
 				printf(ANSI_COLOR_GREEN "Successfully created f3 pthread and enqueued. TID %ld\n" 
@@ -758,6 +783,17 @@ void _debugging_pthread_join(){
 			}
 			continue;
 		}
+
+		/* TID 4: f3 (joins TID3) */
+		if(i == 2){
+			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f3, (void*) &pthread_array[1])){
+				printf(ANSI_COLOR_GREEN "Successfully created f3 pthread and enqueued. TID %ld\n" 
+					ANSI_COLOR_RESET, pthread_array[i].threadID);
+			}
+			continue;
+		}
+
+
 
 
 		if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f1, (void*) i)){
