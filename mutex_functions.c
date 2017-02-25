@@ -609,6 +609,7 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr){
 ************************************************************************************************************/
 
 int my_pthread_mutex_init(my_pthread_mutex_t *mutex, const my_pthread_mutexattr_t *mutexattr){
+	SYS_MODE = 1;
 	if(mutex->initialized == 1){
 		printf("Mutex is already initialized\n");
 		return -1;
@@ -617,11 +618,14 @@ int my_pthread_mutex_init(my_pthread_mutex_t *mutex, const my_pthread_mutexattr_
 	mutex->id = mutex_count;
 	mutex_count++;
 	mutex->waiting_queue = NULL;
+	resetTimer();
 	return 0;
 }
 int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 	//idea here is to pass ownership of the lock to next in queue instead of checking if the lock is available
 	//only do we actually set the lock to 1 once we call lock for an empty queue
+	
+
 	thread_unit_* temp = mutex->waiting_queue;
 	if(mutex->initialized == 0){
 		printf("Trying to lock an uninitialized mutex\n");
@@ -632,16 +636,19 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 		return -1;
 	}
 	if(mutex->lock == 1){
-		printf("lock is in use, adding myself to the mutex waiting queue for lock %d\n",mutex->lock); 
+		// Lock is currently in use & wait_queue is empty 
 		SYS_MODE = 1;
+		printf("lock is in use, adding myself to the mutex waiting queue for lock %d\n",mutex->lock); 
 		if(temp == NULL){
 			mutex->waiting_queue = scheduler->currently_running;
+			scheduler->currently_running->state == WAITING;
 			pthread_yield();
 			//when thread resumes, it should be getting the lock
 			mutex->lock = 1;
 			mutex->owner = scheduler->currently_running->thread->threadID;
 			return 0;
 		}
+
 		while(temp->mutex_next != NULL){ 
 		//add thread to the end of the queue
 		//use a thread list here?  but then we need to create functions using mutex_next instead of next
@@ -654,6 +661,8 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 		mutex->owner = scheduler->currently_running->thread->threadID;
 		return 0;
 	}
+
+	/* Lock says its available, but its waiting_queue is not empty  */
 	if(mutex->lock == 0 && mutex->waiting_queue != NULL){
 		printf("wait your turn\n");
 		SYS_MODE = 1;
@@ -667,16 +676,38 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 		mutex->owner = scheduler->currently_running->thread->threadID;
 		return 0;
 	}
+
+	/* First person to claim lock */
 	if(mutex->lock == 0 && mutex->waiting_queue == NULL){
 		SYS_MODE = 1;
 		mutex->lock = 1;
 		mutex->owner = scheduler->currently_running->thread->threadID;
-		SYS_MODE = 0;
+		resetTimer();
 		return 0;
 	}
 	printf("panic\n");
 	return -1;
 }
+/* Resets timer to 4 TQ */
+void resetTimer(){
+
+	int 				TIMER_MULTIPLE 	= 3;
+	struct itimerval 	timer;
+	thread_unit* 		thread_up_next = NULL;
+	thread_unit* 		prev = scheduler->currently_running;
+
+	/* Set timer */
+    timer.it_value.tv_sec 		= 0;			// Time remaining until next expiration (sec)
+    timer.it_value.tv_usec 		= TIMER_MULTIPLE*TIME_QUANTUM;	// wait 50ms if running queue is empty. 
+    timer.it_interval.tv_sec 	= 0;			// Interval for periodic timer (sec)
+    timer.it_interval.tv_usec 	= 0;			// "" (microseconds)
+    setitimer(ITIMER_REAL, &timer, NULL);
+
+
+	SYS_MODE = 0;
+	return;
+}
+
 int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){
 	if(mutex->initialized == 0){
 		printf("Trying to unlock an uninitialized mutex\n");
@@ -691,15 +722,19 @@ int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){
 		return -1;
 	}
 	if(mutex->lock == 1 && mutex->owner == scheduler->currently_running->thread->threadID){
+		
+		SYS_MODE = 1;
 		if(mutex->waiting_queue == NULL){
 			mutex->lock = 0;
 			mutex->owner = -1; // because thread 0 is main
+			my_pthread_yield();
 			return 0;
 		}else{
 			mutex->waiting_queue->state = READY;
 			mutex->waiting_queue = mutex->waiting_queue->mutex_next;
 			mutex->owner = -1;
 			//leave it locked so nobody sneaks in for a steal
+			my_pthread_yield();
 			return 0;
 		}
 	}
@@ -707,23 +742,26 @@ int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){
 	return -1;
 }
 int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
+
+	SYS_MODE = 1;
 	if(mutex->initialized == 0){
 		printf("Trying to destroy an uninitialized mutex\n");
+		my_pthread_yield();
 		return -1;
 	}
-	if(mutex->lock == 1 && mutex->waiting_queue!= NULL){
-		printf("Cant destory while others are waiting for the lock\n");
-		//we should force release or we might hit a deadlock
-		my_pthread_mutex_unlock(&mutex);
-		return 0;
-	}
+	// if(mutex->lock == 1 && mutex->waiting_queue!= NULL){
+	// 	printf("Cant destory while others are waiting for the lock\n");
+	// 	//we should force release or we might hit a deadlock
+	// 	my_pthread_mutex_unlock(&mutex);
+	// 	return 0;
+	// }
 	if(mutex->lock == 1 && mutex->owner == scheduler->current_running->thread->threadID && mutex->waiting_queue == NULL){
 		SYS_MODE =1;
 		printf("you are the owner of the lock and can freely destroy it");
 		mutex->initialized = 0;
 		mutex->owner = -1;
 		mutex->lock = 0;
-		SYS_MODE =0;
+		resetTimer();
 		//no memory was allocated so its on the user to free
 		return 0;
 	}
@@ -732,10 +770,12 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 		printf("no one waiting for the lock so its safe to destroy\n");
 		mutex->initialized = 0;
 		//no memory was allocated so its on the user to free
-		SYS_MODE =0;
+		resetTimer();
 		return 0;
 	}
+
 	//panic?
+	printf("panic!\n");
 	return 0;
 }
 

@@ -13,6 +13,8 @@ static scheduler_t* scheduler;
 int 				SYS_MODE 				= 0;
 int 				scheduler_initialized 	= 0;
 int 				first_run_complete		= 0;
+int					mutex_count = 0;
+
 
 thread_unit*		maintenance_thread_unit;
 thread_unit* 		main_thread_unit;
@@ -133,12 +135,43 @@ void scheduler_sig_handler(){
 
 void maintenance_cycle(){
 
+	int i;
+	thread_unit* temp;
+
 	printf(ANSI_COLOR_YELLOW "\n------------------------------------------------" ANSI_COLOR_RESET);
 	printf(ANSI_COLOR_YELLOW "\nMaintenance Cycle\n" ANSI_COLOR_RESET);
+
+	printf(ANSI_COLOR_YELLOW "The old running queue:\n"ANSI_COLOR_RESET);
+	_print_thread_list(scheduler->running);
+
+	printf("\n");
+	for(i=0; i<PRIORITY_LEVELS; i++){
+		printf(ANSI_COLOR_YELLOW "The old queue with threads of priority %d:\n" ANSI_COLOR_RESET, i+1);
+		_print_thread_list(scheduler->priority_array[i]);
+	}
+	printf("\n");
+
 
 	/**********************************************************************************
 		Priority Adjustments	 TODO:  all of this 
 	**********************************************************************************/
+
+
+	/* Adjust priorities of all threads by increasing priority by 1 */
+	for(i=1; i<PRIORITY_LEVELS; i++){
+
+		while(!thread_list_isempty(scheduler->priority_array[i])){
+
+			if((temp = thread_list_dequeue(scheduler->priority_array[i])) != NULL){
+				int new_priority = temp->priority;
+				new_priority--;
+				temp->priority = new_priority;
+				thread_list_enqueue(scheduler->priority_array[new_priority], temp);
+			}
+
+		}
+	}
+
 
 
 
@@ -146,67 +179,120 @@ void maintenance_cycle(){
 		ADD RUNNING BACK IN 	 
 	**********************************************************************************/
 	
-	thread_unit* temp;
-
-	// printf(ANSI_COLOR_YELLOW "The old waiting queue:\n"ANSI_COLOR_RESET);
-	// _print_thread_list_wait(scheduler->waiting);
-
-	printf(ANSI_COLOR_YELLOW "The old running queue:\n"ANSI_COLOR_RESET);
-	_print_thread_list(scheduler->running);
 
 
-	printf(ANSI_COLOR_YELLOW "The old priority[0] queue:\n" ANSI_COLOR_RESET);
-	_print_thread_list(scheduler->priority_array[0]);
+
+
 
 	while(!thread_list_isempty(scheduler->running)){
 
 		if((temp = thread_list_dequeue(scheduler->running)) != NULL){
 
-			if(temp->state == READY || temp->state == WAITING){
-				thread_list_enqueue(scheduler->priority_array[0], temp);
+			if(temp->state != TERMINATED){
+				/* lower a thread's priority before putting it back into multi-priority	queue */
+				int new_priority = temp->priority;
+				new_priority++;
+				if(new_priority >= PRIORITY_LEVELS){
+					new_priority = PRIORITY_LEVELS-1;
+				}
+				temp->priority = new_priority;
+				thread_list_enqueue(scheduler->priority_array[new_priority], temp);
+			}else{
+				free(temp->ucontext->uc_stack.ss_sp);
+				free(temp->ucontext);
+				free(temp);  // Free the thread_unit in maint_cycle after ucontext 
+				continue;
 			}
+
 		
 		}
 	}
 
 
+	/* DAT OLD SHIT */
+	// while(!thread_list_isempty(scheduler->running)){
+
+	// 	if((temp = thread_list_dequeue(scheduler->running)) != NULL){
+
+	// 		if(temp->state == TERMINATED){
+	// 			free(temp->ucontext->uc_stack.ss_sp);
+	// 			free(temp->ucontext);
+	// 			free(temp);  // Free the thread_unit in maint_cycle after ucontext 
+	// 			continue;
+	// 		}
+
+	// 		if(temp->state == READY || temp->state == WAITING){
+	// 			thread_list_enqueue(scheduler->priority_array[0], temp);
+	// 		}
+		
+	// 	}
+	// }
+
+
 	/**********************************************************************************
-		Populate running queue 	TODO:  Fix this shit 
+		Populate running queue
 	**********************************************************************************/
 
 	/* Collect MAINT_CYCLE number processes to run and put them into running queue */
-	int i; 
+	// int i; 
 	scheduler->running->head = NULL;
 	scheduler->running->tail = NULL;
 	scheduler->running->iter = NULL;
 
-	//printf("\n\n");
+	
+	int j;
+	int num_quanta = 0;
+	int scheduled_time = 0;
+	/* Picks (PRIORITY_LEVELS - scheduler priority level) number of threads from each scheduler priority level */
+	for(i=0; i<PRIORITY_LEVELS; i++){
+		num_quanta = i + 1;
 
-	for(i=0; i<MAINT_CYCLE; i++){
-
-		temp = scheduler->priority_array[0]->head;
-		thread_unit* prev = NULL;
-		while(temp != NULL){
-
-			//_print_thread_unit(temp);
-			if(temp->state == READY){
-
-
-				// Remove temp from priority list
-				if(prev == NULL){
-					scheduler->priority_array[0]->head = temp->next;
-				}else{
-					prev->next = temp->next;
-				}
-				thread_list_enqueue(scheduler->running, temp);
+		for(j=0; j<PRIORITY_LEVELS-i; j++){
+			thread_unit* temp;
+			/* if adding thread increases beyond RUNNING_TIME, break */
+			if((scheduled_time+num_quanta) > RUNNING_TIME){
 				break;
 			}
 
-			prev = temp;
-			temp = temp->next;
-
+			if((temp = thread_list_dequeue(scheduler->priority_array[i])) != NULL){
+				if(temp->state == READY){
+					scheduled_time += num_quanta;
+					temp->time_slice = TIME_QUANTUM * num_quanta;
+					thread_list_enqueue(scheduler->running, temp);
+				}else{
+					thread_list_enqueue(scheduler->priority_array[i], temp);
+				}
+			}
 		}
 	}
+
+
+// /*already here*/
+// 	for(i=0; i<RUNNING_TIME; i++){
+
+// 		temp = scheduler->priority_array[0]->head;
+// 		thread_unit* prev = NULL;
+// 		while(temp != NULL){
+
+// 			//_print_thread_unit(temp);
+// 			if(temp->state == READY){
+
+
+// 				// Remove temp from priority list
+// 				if(prev == NULL){
+// 					scheduler->priority_array[0]->head = temp->next;
+// 				}else{
+// 					prev->next = temp->next;
+// 				}
+// 				thread_list_enqueue(scheduler->running, temp);
+// 				break;
+// 			}
+
+// 			prev = temp;
+// 			temp = temp->next;
+
+// 		}
+// 	}
 
 		// if((temp = thread_list_peek(scheduler->priority_array[0])) != NULL){
 
@@ -229,8 +315,11 @@ void maintenance_cycle(){
 	printf(ANSI_COLOR_YELLOW "The new running queue:\n" ANSI_COLOR_RESET);
 	_print_thread_list(scheduler->running);
 
-	printf(ANSI_COLOR_YELLOW "The current priority[0] queue:\n" ANSI_COLOR_RESET);
-	_print_thread_list(scheduler->priority_array[0]);
+	for(i=0; i<PRIORITY_LEVELS; i++){
+		printf(ANSI_COLOR_YELLOW "The current queue with threads of priority %d:\n" ANSI_COLOR_RESET, i+1);
+		_print_thread_list(scheduler->priority_array[i]);
+	}
+
 
 	printf(ANSI_COLOR_YELLOW "------------------------------------------------\n\n" ANSI_COLOR_RESET);
 }
@@ -492,6 +581,7 @@ void my_pthread_yield(){
 	struct itimerval 	timer;
 	thread_unit* 		thread_up_next = NULL;
 	thread_unit* 		prev = scheduler->currently_running;
+	int 				runs = 0;
 
 	/* Currently_running is the one that just finished running */
 	if(!thread_list_isempty(scheduler->running) && scheduler->currently_running != NULL){
@@ -499,7 +589,8 @@ void my_pthread_yield(){
 			(scheduler->currently_running->state != WAITING)){
 			scheduler->currently_running->state = READY;
 		}
-		scheduler->currently_running->run_count++;
+		runs = scheduler->currently_running->time_slice / TIME_QUANTUM;
+		scheduler->currently_running->run_count += runs;
 	}
 
 
@@ -539,15 +630,6 @@ void my_pthread_yield(){
 
 void my_pthread_exit(void *value_ptr){
 
-	/*
-		TODO	
-		As per discussion:
-			set id = -1
-			dont actually remove.  let the maintcycle do it.
-
-		So the below is mostly incorrect.  Do not want to free yet.
-		Only pass the void* along ad then call yield
-	*/
 
 	SYS_MODE = 1;
 
@@ -564,7 +646,6 @@ void my_pthread_exit(void *value_ptr){
 		scheduler->currently_running->thread->threadID);
 	_print_thread_list_wait(scheduler->currently_running->waiting_on_me);
 
-	/* Testing */
 
 	thread_unit* temp;
 	while(!thread_list_isempty(scheduler->currently_running->waiting_on_me)){
@@ -607,14 +688,6 @@ void my_pthread_exit(void *value_ptr){
 	scheduler->currently_running->state 			= TERMINATED;
 	scheduler->currently_running->thread->threadID 	= -1;
 
-
-
-	/* Free malloced memory and cleanup */
-
-	// free(scheduler->currently_running->thread);  // The user is responsible for my_pthread_t memory allocation
-	free(scheduler->currently_running->ucontext->uc_stack.ss_sp);
-	free(scheduler->currently_running->ucontext);
-	//	free(scheduler->currently_running);  // Keep the thread_unit around for scheduler book keeping 
 
 	my_pthread_yield();
 }
@@ -691,16 +764,174 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr){
 ************************************************************************************************************/
 
 int my_pthread_mutex_init(my_pthread_mutex_t *mutex, const my_pthread_mutexattr_t *mutexattr){
-	
+	SYS_MODE = 1;
+	if(mutex->initialized == 1){
+		printf("Mutex is already initialized\n");
+		return -1;
+	}
+	mutex->initialized = 1;
+	mutex->id = mutex_count;
+	mutex_count++;
+	mutex->waiting_queue = NULL;
+	resetTheTimer();
+	return 0;
 }
 int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
+	//idea here is to pass ownership of the lock to next in queue instead of checking if the lock is available
+	//only do we actually set the lock to 1 once we call lock for an empty queue
 	
+
+	thread_unit* temp = mutex->waiting_queue;
+	if(mutex->initialized == 0){
+		printf("Trying to lock an uninitialized mutex\n");
+		return -1;
+	}
+	if(mutex->lock == 1 && mutex->owner == scheduler->currently_running->thread->threadID){
+		printf("You own the lock, why are you trying to lock it?\n");
+		return -1;
+	}
+	if(mutex->lock == 1){
+		// Lock is currently in use & wait_queue is empty 
+		SYS_MODE = 1;
+		printf("lock is in use, adding myself to the mutex waiting queue for lock %d\n",mutex->lock); 
+		if(temp == NULL){
+			mutex->waiting_queue = scheduler->currently_running;
+			scheduler->currently_running->state == WAITING;
+			my_pthread_yield();
+			//when thread resumes, it should be getting the lock
+			mutex->lock = 1;
+			mutex->owner = scheduler->currently_running->thread->threadID;
+			return 0;
+		}
+
+		while(temp->mutex_next != NULL){ 
+		//add thread to the end of the queue
+		//use a thread list here?  but then we need to create functions using mutex_next instead of next
+			temp = temp->mutex_next;
+		}
+		temp->mutex_next = scheduler->currently_running;
+		scheduler->currently_running->state = WAITING;
+		my_pthread_yield();
+		mutex->lock = 1;
+		mutex->owner = scheduler->currently_running->thread->threadID;
+		return 0;
+	}
+
+	/* Lock says its available, but its waiting_queue is not empty  */
+	if(mutex->lock == 0 && mutex->waiting_queue != NULL){
+		printf("wait your turn\n");
+		SYS_MODE = 1;
+		while(temp->mutex_next != NULL){
+			temp = temp->mutex_next;
+		}
+		temp->mutex_next = scheduler->currently_running;
+		scheduler->currently_running->state = WAITING;
+		my_pthread_yield();
+		mutex->lock = 1;
+		mutex->owner = scheduler->currently_running->thread->threadID;
+		return 0;
+	}
+
+	/* First person to claim lock */
+	if(mutex->lock == 0 && mutex->waiting_queue == NULL){
+		SYS_MODE = 1;
+		mutex->lock = 1;
+		mutex->owner = scheduler->currently_running->thread->threadID;
+		resetTheTimer();
+		return 0;
+	}
+	printf("panic\n");
+	return -1;
 }
+/* Resets timer to 4 TQ */
+void resetTheTimer(){
+
+	int 				TIMER_MULTIPLE 	= 3;
+	struct itimerval 	timer;
+	thread_unit* 		thread_up_next = NULL;
+	thread_unit* 		prev = scheduler->currently_running;
+
+	/* Set timer */
+    timer.it_value.tv_sec 		= 0;			// Time remaining until next expiration (sec)
+    timer.it_value.tv_usec 		= TIMER_MULTIPLE*TIME_QUANTUM;	// wait 50ms if running queue is empty. 
+    timer.it_interval.tv_sec 	= 0;			// Interval for periodic timer (sec)
+    timer.it_interval.tv_usec 	= 0;			// "" (microseconds)
+    setitimer(ITIMER_REAL, &timer, NULL);
+
+
+	SYS_MODE = 0;
+	return;
+}
+
 int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){
-	
+	if(mutex->initialized == 0){
+		printf("Trying to unlock an uninitialized mutex\n");
+		return -1;
+	}
+	if(mutex->lock == 0){
+		printf("nothing to unlock\n");
+		return -1;
+	}
+	if(mutex->lock == 1 && mutex->owner != scheduler->currently_running->thread->threadID){
+		printf("not the owner so not unlocking\n");
+		return -1;
+	}
+	if(mutex->lock == 1 && mutex->owner == scheduler->currently_running->thread->threadID){
+		
+		SYS_MODE = 1;
+		if(mutex->waiting_queue == NULL){
+			mutex->lock = 0;
+			mutex->owner = -1; // because thread 0 is main
+			my_pthread_yield();
+			return 0;
+		}else{
+			mutex->waiting_queue->state = READY;
+			mutex->waiting_queue = mutex->waiting_queue->mutex_next;
+			mutex->owner = -1;
+			//leave it locked so nobody sneaks in for a steal
+			my_pthread_yield();
+			return 0;
+		}
+	}
+	printf("panic\n");
+	return -1;
 }
 int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
-	
+
+	SYS_MODE = 1;
+	if(mutex->initialized == 0){
+		printf("Trying to destroy an uninitialized mutex\n");
+		my_pthread_yield();
+		return -1;
+	}
+	// if(mutex->lock == 1 && mutex->waiting_queue!= NULL){
+	// 	printf("Cant destory while others are waiting for the lock\n");
+	// 	//we should force release or we might hit a deadlock
+	// 	my_pthread_mutex_unlock(&mutex);
+	// 	return 0;
+	// }
+	if(mutex->lock == 1 && mutex->owner == scheduler->currently_running->thread->threadID && mutex->waiting_queue == NULL){
+		SYS_MODE =1;
+		printf("you are the owner of the lock and can freely destroy it");
+		mutex->initialized = 0;
+		mutex->owner = -1;
+		mutex->lock = 0;
+		resetTheTimer();
+		//no memory was allocated so its on the user to free
+		return 0;
+	}
+	if(mutex->lock == 0 && mutex->owner == -1){
+		SYS_MODE =1;
+		printf("no one waiting for the lock so its safe to destroy\n");
+		mutex->initialized = 0;
+		//no memory was allocated so its on the user to free
+		resetTheTimer();
+		return 0;
+	}
+
+	//panic?
+	printf("panic!\n");
+	return 0;
 }
 
 
@@ -784,9 +1015,9 @@ void _debugging_pthread_join(){
 			continue;
 		}
 
-		/* TID 4: f3 (joins TID3) */
+		/* TID 4: f3 (joins TID2) */
 		if(i == 2){
-			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f3, (void*) &pthread_array[1])){
+			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f3, (void*) &pthread_array[0])){
 				printf(ANSI_COLOR_GREEN "Successfully created f3 pthread and enqueued. TID %ld\n" 
 					ANSI_COLOR_RESET, pthread_array[i].threadID);
 			}

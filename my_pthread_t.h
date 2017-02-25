@@ -29,7 +29,7 @@
 #define PAGE_SIZE 			4096					// Stack size defaults to page size
 #define PRIORITY_LEVELS 	5						// Number of priority levels
 #define TIME_QUANTUM 		50000 					// 50 ms = 50000 us  
-#define MAINT_CYCLE 			3						// Experimental value 
+#define RUNNING_TIME 			3						// Experimental value 
 
 
 /************************************************************************************************************
@@ -64,8 +64,9 @@ typedef struct my_pthread_mutex_t {
     int                         initialized;    // for mutex_init() 
     unsigned int                id;
 	int 					    lock;
+	long int 					owner;
 	struct my_pthread_t* 	    owning_thread;	// Do we instead need a pointer to thread_unit?  Or both?
-	struct thread_unit_list_*   waiting_queue;
+	struct thread_unit_*   		waiting_queue;  
 
 }my_pthread_mutex_t;
 
@@ -119,7 +120,8 @@ typedef struct thread_unit_ {
 
 
 	struct thread_unit_*		wait_next;
-	struct thread_unit_*		wait_prev;
+	// struct thread_unit_*		wait_prev;
+	struct thread_unit_* 		mutex_next;
 
 }thread_unit;
 
@@ -202,7 +204,7 @@ int my_pthread_mutex_init(my_pthread_mutex_t *mutex, const my_pthread_mutexattr_
 int my_pthread_mutex_lock(my_pthread_mutex_t *mutex);
 int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex);
 int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex);
-
+void resetTheTimer();
 
 
 /* scheduler library */
