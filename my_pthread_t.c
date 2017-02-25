@@ -847,7 +847,7 @@ int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){
 		if(mutex->waiting_queue == NULL){
 			mutex->lock = 0;
 			mutex->owner = -1; // because thread 0 is main
-			my_pthread_yield();
+			// my_pthread_yield();
 			//resetTheTimer();
 			return 0;
 		}else{
@@ -855,7 +855,7 @@ int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){
 			mutex->waiting_queue = mutex->waiting_queue->mutex_next;
 			mutex->owner = -1;
 			//leave it locked so nobody sneaks in for a steal
-			my_pthread_yield();
+			// my_pthread_yield();
 			//resetTheTimer();
 			return 0;
 		}
