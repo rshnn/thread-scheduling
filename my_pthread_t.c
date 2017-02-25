@@ -94,8 +94,10 @@ void scheduler_runThread(thread_unit* thread, thread_unit* prev){
 	}
 
 
+	if(thread != NULL && prev != NULL){
 	_print_thread_unit(thread);
 	_print_thread_unit(prev);
+	}
 	// if(scheduler->currently_running->state == RUNNING){
 	// 	scheduler->currently_running->state = READY;
 	// }
