@@ -145,7 +145,7 @@ void maintenance_cycle(){
 
 		if((temp = thread_list_dequeue(scheduler->running)) != NULL){
 
-			if(temp->state == READY){
+			if(temp->state != TERMINATED){
 				/* lower a thread's priority before putting it back into multi-priority	queue */
 				int new_priority = temp->priority;
 				new_priority++;
