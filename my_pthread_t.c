@@ -14,7 +14,9 @@ int 				SYS_MODE 				= 0;
 int 				scheduler_initialized 	= 0;
 int 				first_run_complete		= 0;
 int					mutex_count = 0;
+int 				test_counter = 0;
 
+my_pthread_mutex_t mutex;
 
 thread_unit*		maintenance_thread_unit;
 thread_unit* 		main_thread_unit;
@@ -709,6 +711,11 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr){
 
 int my_pthread_mutex_init(my_pthread_mutex_t *mutex, const my_pthread_mutexattr_t *mutexattr){
 	SYS_MODE = 1;
+	
+	if(scheduler_initialized == 0){
+		scheduler_init();
+	}
+
 	if(mutex->initialized == 1){
 		printf("Mutex is already initialized\n");
 		return -1;
@@ -718,6 +725,7 @@ int my_pthread_mutex_init(my_pthread_mutex_t *mutex, const my_pthread_mutexattr_
 	mutex_count++;
 	mutex->waiting_queue = NULL;
 	resetTheTimer();
+	SYS_MODE = 0;
 	return 0;
 }
 int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
@@ -789,6 +797,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 }
 /* Resets timer to 4 TQ */
 void resetTheTimer(){
+
 
 	int 				TIMER_MULTIPLE 	= 3;
 	struct itimerval 	timer;
@@ -949,6 +958,25 @@ void f3(my_pthread_t* thread){
 
 
 
+void m1(my_pthread_t* thread){
+
+	my_pthread_mutex_lock(&mutex);
+
+	printf("TID %ld got the lock", thread->threadID);	
+
+	test_counter+= thread->threadID;
+
+	printf("\tI changed the counter to: %i\n", test_counter);
+
+	sleep(5);
+
+	my_pthread_mutex_unlock(&mutex);
+
+	my_pthread_exit(NULL);
+}
+
+
+
 void _debugging_pthread_join(){
 
 	printf(ANSI_COLOR_RED "\n\nRunning pthread_join() debug test...\n\n" ANSI_COLOR_RESET);
@@ -1019,6 +1047,45 @@ void _debugging_pthread_join(){
 
 void _debugging_pthread_mutex(){
 
+		printf(ANSI_COLOR_RED "\n\nRunning pthread_join() debug test...\n\n" ANSI_COLOR_RESET);
+	
+	int NUM_PTHREADS = 5;
+
+
+	// my_pthread_t pthread_array[NUM_PTHREADS];
+	my_pthread_t* pthread_array = (my_pthread_t*)malloc(NUM_PTHREADS * sizeof(my_pthread_t));
+	my_pthread_attr_t* useless_attr;
+	my_pthread_mutexattr_t* useless_mattr;
+
+	my_pthread_mutex_init(&mutex, useless_mattr);
+
+	int i;
+
+	for(i=0; i<NUM_PTHREADS;i++){
+
+		/* TID 2: grab */
+		if(my_pthread_create(&pthread_array[i], useless_attr, (void*)m1, (void*) &pthread_array[i])){
+			printf(ANSI_COLOR_GREEN "Successfully created f2 pthread and enqueued. TID %ld\n" 
+				ANSI_COLOR_RESET, pthread_array[i].threadID);
+		}
+
+		
+
+	} 
+
+	printf("\nPrinting priority array 0 (Inside main).  Should include pthreads 2 to 6.\n");
+	_print_thread_list(scheduler->priority_array[0]);
+
+
+	/* Main joins on thread2 */
+	my_pthread_join(pthread_array[0], NULL);
+
+	while(1){
+		usleep(500000);
+		printf("\tExecuting main!\n");
+	}
+
+
 }
 
 int main(){
@@ -1032,6 +1099,6 @@ int main(){
 	// _debugging_pthread_create();
 	// _debugging_pthread_yield();
 
-	_debugging_pthread_join();
+	_debugging_pthread_mutex();
 }
 
