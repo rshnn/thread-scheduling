@@ -790,7 +790,8 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 		SYS_MODE = 1;
 		mutex->lock = 1;
 		mutex->owner = scheduler->currently_running->thread->threadID;
-		resetTheTimer();
+		//resetTheTimer();
+		my_pthread_yield();
 		return 0;
 	}
 	printf("panic\n");
@@ -871,7 +872,9 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 		mutex->initialized = 0;
 		mutex->owner = -1;
 		mutex->lock = 0;
-		resetTheTimer();
+		// resetTheTimer();
+		my_pthread_yield();
+		
 		//no memory was allocated so its on the user to free
 		return 0;
 	}
@@ -880,7 +883,8 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 		printf("no one waiting for the lock so its safe to destroy\n");
 		mutex->initialized = 0;
 		//no memory was allocated so its on the user to free
-		resetTheTimer();
+		// resetTheTimer();
+		my_pthread_yield();
 		return 0;
 	}
 
