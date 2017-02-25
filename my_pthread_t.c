@@ -193,7 +193,7 @@ void maintenance_cycle(){
 
 	priority_level_sort();
 
-
+	print("Done sorting.\n");
 	/**********************************************************************************
 		ADD RUNNING BACK IN 	 
 	**********************************************************************************/
@@ -621,7 +621,7 @@ void my_pthread_exit(void *value_ptr){
 	while(!thread_list_isempty(scheduler->currently_running->waiting_on_me)){
 
 		if((temp = thread_list_dequeue_wait(scheduler->currently_running->waiting_on_me)) != NULL){
-			_print_thread_unit(temp);
+			// _print_thread_unit(temp);
 			// printf("\tThread %ld is now ready.\n", temp->thread->threadID);
 			temp->state = READY;
 			temp->thread->return_val = value_ptr;
