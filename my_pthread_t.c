@@ -851,7 +851,7 @@ int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){
 			//resetTheTimer();
 			return 0;
 		}else{
-			mutex->waiting_queue->state = READY;
+			//mutex->waiting_queue->state = READY;
 			mutex->waiting_queue = mutex->waiting_queue->mutex_next;
 			mutex->owner = -1;
 			//leave it locked so nobody sneaks in for a steal
