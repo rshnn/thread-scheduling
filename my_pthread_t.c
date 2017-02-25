@@ -753,7 +753,11 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 			//mutex->waiting_queue = scheduler->currently_running;
 			printf("TID %ld has been added to the waiting queue.\n",scheduler->currently_running->thread->threadID);
 			scheduler->currently_running->state == WAITING;
+			_print_thread_unit(scheduler->currently_running);
 			my_pthread_yield();
+
+			printf("I have been revived.\n");
+			_print_thread_unit(scheduler->currently_running);
 			//when thread resumes, it should be getting the lock
 			mutex->lock = 1;
 			mutex->owner = scheduler->currently_running->thread->threadID;
