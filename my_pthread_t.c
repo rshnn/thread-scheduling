@@ -507,7 +507,7 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 	// if((new_unit->ucontext->uc_stack.ss_sp = malloc(PAGE_SIZE))==NULL){
 	// 	printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 	// }
-	new_unit->ucontext->uc_stack.ss_size 	= new_unit->stack;
+	new_unit->ucontext->uc_stack.ss_sp 	= new_unit->stack;
 	new_unit->ucontext->uc_stack.ss_size 	= PAGE_SIZE;
 		/* wtf is happening here^?  I found this online somewhere.  Is it working?*/
 
