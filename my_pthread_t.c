@@ -1003,8 +1003,9 @@ void m1(my_pthread_t* thread){
 
 	printf("\tI changed the counter to: %i\n", test_counter);
 
-	sleep(5);
-	printf("Im awake.\n");
+	//sleep(5);
+	//printf("Im awake.\n");
+	my_pthread_yield();
 
 	my_pthread_mutex_unlock(&mutex);
 	printf("\tTID %ld is releasing the lock.", thread->threadID);

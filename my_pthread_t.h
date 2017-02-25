@@ -83,7 +83,7 @@ typedef struct my_pthread_attr_t {
 typedef struct my_pthread_mutex_t { 
     
     int                         initialized;    // for mutex_init() 
-    unsigned int                id;
+    int                			id;
 	int 					    lock;
 	long int 					owner;
 	struct my_pthread_t* 	    owning_thread;	// Do we instead need a pointer to thread_unit?  Or both?
@@ -195,7 +195,7 @@ typedef struct mutex_node_ {
 typedef struct scheduler_t {
     
     int 						initialized;
-    int 						threadID_count;
+    long int 					threadID_count;
     struct thread_unit_list_* 	priority_array[PRIORITY_LEVELS];
     struct mutex_node_* 		mutex_list;
     struct thread_unit_* 		currently_running;
