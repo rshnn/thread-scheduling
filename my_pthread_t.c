@@ -765,6 +765,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 		temp->mutex_next = scheduler->currently_running;
 		scheduler->currently_running->state = WAITING;
 		my_pthread_yield();
+		printf("\tI got the lock. TID %ld", scheduler->currently_running->thread->threadID);
 		mutex->lock = 1;
 		mutex->owner = scheduler->currently_running->thread->threadID;
 		return 0;
