@@ -725,7 +725,8 @@ int my_pthread_mutex_init(my_pthread_mutex_t *mutex, const my_pthread_mutexattr_
 	mutex->id = mutex_count;
 	mutex_count++;
 	mutex->waiting_queue = NULL;
-	resetTheTimer();
+	//resetTheTimer();
+	my_pthread_yield();
 	SYS_MODE = 0;
 	return 0;
 }
