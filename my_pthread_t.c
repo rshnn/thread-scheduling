@@ -128,6 +128,7 @@ void scheduler_sig_handler(){
 
 
 	if(SYS_MODE == 1){
+		printf("TIMER: In the middle of shit.\n");
 		return;
 	}
 
