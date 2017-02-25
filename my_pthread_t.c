@@ -616,11 +616,12 @@ void my_pthread_exit(void *value_ptr){
 	// 	_print_thread_list_wait(scheduler->currently_running->waiting_on_me);
 	// }
 
-	
+
 	thread_unit* temp;
 	while(!thread_list_isempty(scheduler->currently_running->waiting_on_me)){
 
 		if((temp = thread_list_dequeue_wait(scheduler->currently_running->waiting_on_me)) != NULL){
+			_print_thread_unit(temp);
 			// printf("\tThread %ld is now ready.\n", temp->thread->threadID);
 			temp->state = READY;
 			temp->thread->return_val = value_ptr;
