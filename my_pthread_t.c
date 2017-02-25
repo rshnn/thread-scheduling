@@ -231,7 +231,7 @@ void maintenance_cycle(){
 				thread_list_enqueue(scheduler->priority_array[temp->priority], temp);
 			}else{
 				printf("in else\n");
-				_print_thread_unit(temp);
+				//_print_thread_unit(temp);
 				
 				// free(temp->ucontext->uc_stack.ss_sp);
 				printf("success 1\n");
