@@ -203,9 +203,13 @@ void maintenance_cycle(){
 
 		if((temp = thread_list_dequeue(scheduler->running)) != NULL){
 
+			printf("after dequeue\n");
+
 			if(temp->state != TERMINATED){
 				/* lower a thread's priority before putting it back into multi-priority	queue */
 			
+				printf("after terminated\n");
+
 				if(temp->priority > (PRIORITY_LEVELS/3) && 
 					(!thread_list_isempty(temp->waiting_on_me) || temp->mutex_next != NULL)){
 					/* Case to handle priority inversion */
