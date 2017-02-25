@@ -337,6 +337,7 @@ void scheduler_init(){
 	main_thread_unit->time_slice = TIME_QUANTUM;
 	main_thread_unit->run_count = 1;
 	main_thread_unit->wait_next = NULL;
+	main_thread_unit->waiting_on_me = thread_list_init();
 	main_thread_unit->next = NULL;
 
 	main_thread_unit->thread = (my_pthread_t*)malloc(sizeof(my_pthread_t));
@@ -846,16 +847,16 @@ int my_pthread_mutex_unlock(my_pthread_mutex_t *mutex){
 		if(mutex->waiting_queue == NULL){
 			mutex->lock = 0;
 			mutex->owner = -1; // because thread 0 is main
-			//my_pthread_yield();
-			resetTheTimer();
+			my_pthread_yield();
+			//resetTheTimer();
 			return 0;
 		}else{
 			mutex->waiting_queue->state = READY;
 			mutex->waiting_queue = mutex->waiting_queue->mutex_next;
 			mutex->owner = -1;
 			//leave it locked so nobody sneaks in for a steal
-			// my_pthread_yield();
-			resetTheTimer();
+			my_pthread_yield();
+			//resetTheTimer();
 			return 0;
 		}
 	}
