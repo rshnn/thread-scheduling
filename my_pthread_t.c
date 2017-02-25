@@ -235,9 +235,9 @@ void maintenance_cycle(){
 				
 				// free(temp->ucontext->uc_stack.ss_sp);
 				printf("success 1\n");
-				free(temp->ucontext);
+				// free(temp->ucontext);
 				printf("success 2\n");
-				free(temp);  // Free the thread_unit in maint_cycle after ucontext 
+				// free(temp);  // Free the thread_unit in maint_cycle after ucontext 
 				printf("success 3\n");
 				continue;
 			}
@@ -375,7 +375,7 @@ void scheduler_init(){
 	// 	printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 	// 	exit(-1);
 	// }
-	main_thread_unit->ucontext->uc_stack.ss_sp 	= main_thread_unit->stack;
+	main_thread_unit->ucontext->uc_stack.ss_sp 		= main_thread_unit->stack;
 	main_thread_unit->ucontext->uc_stack.ss_size 	= PAGE_SIZE;
 
 	/* Set uc_link to point to addr of main_ucontext */
