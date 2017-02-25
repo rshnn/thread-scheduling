@@ -27,9 +27,9 @@
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
 #define PAGE_SIZE 			4096					// Stack size defaults to page size
-#define PRIORITY_LEVELS 	5						// Number of priority levels
+#define PRIORITY_LEVELS 	6						// Number of priority levels
 #define TIME_QUANTUM 		50000 					// 50 ms = 50000 us  
-#define RUNNING_TIME 			3						// Experimental value 
+#define RUNNING_TIME 		30						// Experimental value 
 
 
 /************************************************************************************************************

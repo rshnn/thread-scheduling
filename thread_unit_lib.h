@@ -22,7 +22,6 @@ void thread_list_enqueue(thread_unit_list* list, thread_unit* unit);
 thread_unit* thread_list_dequeue(thread_unit_list* list);
 thread_unit* thread_list_peek(thread_unit_list* list);
 int thread_list_isempty(thread_unit_list* list);
-void priority_level_sort(void);
 
 /* Thread Unit List Library for waiting queue */
 void thread_list_enqueue_wait(thread_unit_list* list, thread_unit* unit);
