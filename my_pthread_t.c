@@ -747,7 +747,10 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 		temp = mutex->waiting_queue;
 		printf("lock is in use, adding myself to the mutex waiting queue for lock %d\n",mutex->lock); 
 		if(temp == NULL){
-			mutex->waiting_queue = scheduler->currently_running;
+			temp = scheduler->currently_running;
+			mutex->waiting = temp;
+
+			//mutex->waiting_queue = scheduler->currently_running;
 			printf("TID %ld has been added to the waiting queue.\n",scheduler->currently_running->thread->threadID);
 			scheduler->currently_running->state == WAITING;
 			my_pthread_yield();
@@ -765,7 +768,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 		temp->mutex_next = scheduler->currently_running;
 		scheduler->currently_running->state = WAITING;
 		my_pthread_yield();
-		printf("\tI got the lock. TID %ld", scheduler->currently_running->thread->threadID);
+		printf("\tI got the lock. TID %ld\n", scheduler->currently_running->thread->threadID);
 		mutex->lock = 1;
 		mutex->owner = scheduler->currently_running->thread->threadID;
 		return 0;
