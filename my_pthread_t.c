@@ -748,7 +748,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 		printf("lock is in use, adding myself to the mutex waiting queue for lock %d\n",mutex->lock); 
 		if(temp == NULL){
 			temp = scheduler->currently_running;
-			mutex->waiting = temp;
+			mutex->waiting_queue = temp;
 
 			//mutex->waiting_queue = scheduler->currently_running;
 			printf("TID %ld has been added to the waiting queue.\n",scheduler->currently_running->thread->threadID);
