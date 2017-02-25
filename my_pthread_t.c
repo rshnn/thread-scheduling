@@ -725,16 +725,14 @@ int my_pthread_mutex_init(my_pthread_mutex_t *mutex, const my_pthread_mutexattr_
 	mutex->id = mutex_count;
 	mutex_count++;
 	mutex->waiting_queue = NULL;
-	//resetTheTimer();
-	my_pthread_yield();
+	resetTheTimer();
 	SYS_MODE = 0;
 	return 0;
 }
 int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 	//idea here is to pass ownership of the lock to next in queue instead of checking if the lock is available
 	//only do we actually set the lock to 1 once we call lock for an empty queue
-
-	thread_unit* temp = mutex->waiting_queue;
+	thread_unit* temp; 
 	if(mutex->initialized == 0){
 		printf("Trying to lock an uninitialized mutex\n");
 		return -1;
@@ -746,6 +744,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 	if(mutex->lock == 1){
 		// Lock is currently in use & wait_queue is empty 
 		SYS_MODE = 1;
+		temp = mutex->waiting_queue;
 		printf("lock is in use, adding myself to the mutex waiting queue for lock %d\n",mutex->lock); 
 		if(temp == NULL){
 			mutex->waiting_queue = scheduler->currently_running;
@@ -775,6 +774,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 	if(mutex->lock == 0 && mutex->waiting_queue != NULL){
 		printf("wait your turn\n");
 		SYS_MODE = 1;
+		temp = mutex->waiting_queue;
 		while(temp->mutex_next != NULL){
 			temp = temp->mutex_next;
 		}
@@ -791,8 +791,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 		SYS_MODE = 1;
 		mutex->lock = 1;
 		mutex->owner = scheduler->currently_running->thread->threadID;
-		//resetTheTimer();
-		my_pthread_yield();
+		resetTheTimer();
 		return 0;
 	}
 	printf("panic\n");
@@ -873,9 +872,7 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 		mutex->initialized = 0;
 		mutex->owner = -1;
 		mutex->lock = 0;
-		// resetTheTimer();
-		my_pthread_yield();
-		
+		resetTheTimer();
 		//no memory was allocated so its on the user to free
 		return 0;
 	}
@@ -884,8 +881,7 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 		printf("no one waiting for the lock so its safe to destroy\n");
 		mutex->initialized = 0;
 		//no memory was allocated so its on the user to free
-		// resetTheTimer();
-		my_pthread_yield();
+		resetTheTimer();
 		return 0;
 	}
 
