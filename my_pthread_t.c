@@ -302,43 +302,6 @@ void maintenance_cycle(){
 		}
 
 
-
-		// thread_unit* iter = scheduler->priority_array[i]->head;
-		// num_quanta = i+1;
-		// thread_unit* prev = NULL;
-		// int count = 0;
-
-		// while(iter != NULL && count <= (PRIORITY_LEVELS-i)){
-
-		// 	if( iter->state == READY && count <= num_quanta ){
-		// 		count++;
-		// 		scheduled_time += num_quanta;
-		// 		iter->time_slice = TIME_QUANTUM * num_quanta;
-
-		// 		if(prev == NULL){
-		// 			//head
-		// 			scheduler->priority_array[i]->head = iter->next;
-		// 			scheduler->priority_array[i]->iter = iter->next;
-		// 			scheduler->priority_array[i]->size--;
-		// 			thread_list_enqueue(scheduler->running, iter);
-		// 		}else{
-
-		// 			thread_list_enqueue(scheduler->running, iter);
-		// 			prev->next = iter->next;
-		// 			scheduler->priority_array[i]->size--;
-		// 			//prev = iter;
-		// 			//iter = iter->next;
-		// 		}
-		// 	}
-
-		// 	prev = iter;
-		// 	iter = iter->next;
-		// }
-
-
-
-
-
 	}
 
 
@@ -381,7 +344,7 @@ void scheduler_init(){
 
 	 // Initialize the currently running and waiting queues 
 	scheduler->running = thread_list_init();
-	scheduler->waiting = thread_list_init();
+	// scheduler->waiting = thread_list_init();
 
 	/**********************************************************************************
 		SETUP THREAD_UNITS FOR MAINTENANCE AND MAIN THREADS   
@@ -702,7 +665,9 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr){
 	}
 
 	if(thread.threadID == -1){
-		printf(ANSI_COLOR_RED"\tThread to join has already exited.\n"ANSI_COLOR_RESET);
+		// if(!SUPRESS_PRINTS){
+			printf(ANSI_COLOR_YELLOW"\tThread to join has already exited.\n"ANSI_COLOR_RESET);
+		// }
 		return -1;
 	}
 

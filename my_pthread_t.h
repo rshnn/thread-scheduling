@@ -31,9 +31,11 @@
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
 #define PAGE_SIZE 			4096					// Stack size defaults to page size
-#define PRIORITY_LEVELS 	100						// Number of priority levels
+
+
+#define PRIORITY_LEVELS 	15						// Number of priority levels
 #define TIME_QUANTUM 		50000 					// 50 ms = 50000 us  
-#define RUNNING_TIME 		30						// Experimental value 
+#define RUNNING_TIME 		50						// Experimental value 
 
 
 
@@ -134,7 +136,7 @@ typedef struct thread_unit_ {
     
     my_pthread_t*       		thread;
     ucontext_t*         		ucontext;
-    state               		state;          // NOTE: do we need to keep info on why its waiting here?
+    state               		state;
 	int                 		time_slice;
 	int                 		run_count;
 	int 						priority;
@@ -142,12 +144,8 @@ typedef struct thread_unit_ {
     char						stack[PAGE_SIZE];
 
     struct thread_unit_* 		next;
-
     struct thread_unit_list_* 	waiting_on_me;
-
-
 	struct thread_unit_*		wait_next;
-	// struct thread_unit_*		wait_prev;
 	struct thread_unit_* 		mutex_next;
 
 }thread_unit;
@@ -204,7 +202,6 @@ typedef struct scheduler_t {
     struct mutex_node_* 		mutex_list;
     struct thread_unit_* 		currently_running;
     struct thread_unit_list_*	running;
-    struct thread_unit_list_*	waiting;
 
 }scheduler_t;
 
