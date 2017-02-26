@@ -33,9 +33,11 @@
 #define PAGE_SIZE 			4096					// Stack size defaults to page size
 
 
-#define PRIORITY_LEVELS 	15						// Number of priority levels
+#define PRIORITY_LEVELS 	5						// Number of priority levels
 #define TIME_QUANTUM 		50000 					// 50 ms = 50000 us  
-#define RUNNING_TIME 		50						// Experimental value 
+#define RUNNING_TIME 		5						// Experimental value 
+
+
 
 
 // #define mypthread_create	my_pthread_create
