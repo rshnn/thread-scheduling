@@ -991,11 +991,15 @@ void m1(my_pthread_t* thread){
 
 
 
-void _debugging_pthread_mutex(){
+void _debugging_pthread_mutex(int num){
 
-		printf(ANSI_COLOR_RED "\n\nRunning pthread_join() debug test...\n\n" ANSI_COLOR_RESET);
+	clock_t begin, end;
 	
-	int NUM_PTHREADS = 100;
+	begin = clock();
+
+	printf(ANSI_COLOR_RED "\n\nRunning pthread_join() debug test...\n\n" ANSI_COLOR_RESET);
+	
+	int NUM_PTHREADS = num;
 
 
 	// my_pthread_t pthread_array[NUM_PTHREADS];
@@ -1027,7 +1031,10 @@ void _debugging_pthread_mutex(){
 
 	// my_pthread_join(pthread_array[NUM_PTHREADS-1], NULL);
 	
-	printf("done.\n");
+	end = clock();
+	double time_spent = (double) (end-begin)/CLOCKS_PER_SEC;
+	
+	printf("done. total time is: %f milliseconds.\n", time_spent*1000);
 
 	// while(1){
 	// 	usleep(500000);
@@ -1037,7 +1044,7 @@ void _debugging_pthread_mutex(){
 
 }
 
-int main(){
+int main(int argc, char **argv){
 
 	 
 		// View the debugging.c file to view the old debugging functions.
@@ -1049,6 +1056,8 @@ int main(){
 	// _debugging_pthread_yield();
 	// _debugging_pthread_exit();
 
-	_debugging_pthread_mutex();
+	int how_many_threads_ya_want = (int) argv[1];
+
+	_debugging_pthread_mutex(how_many_threads_ya_want);
 }
 
