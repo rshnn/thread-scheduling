@@ -1109,7 +1109,7 @@ void _debugging_pthread_mutex(){
 
 
 	/* Main joins on thread2 */
-	//my_pthread_join(pthread_array[0], NULL);
+	my_pthread_join(pthread_array[0], NULL);
 
 	while(1){
 		usleep(500000);
