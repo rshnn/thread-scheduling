@@ -52,14 +52,31 @@ void priority_level_sort(){
 		while(iter != NULL){
 			current = scheduler->priority_array[i]->head;
 
+			/* If state is waiting, add to end of queue. */
+			if(iter->state == WAITING){
+				temp = iter->next;
+				while(current->next != NULL){
+					// if(current->next->state != WAITING){
+					// 	break;
+					// }
+					current = current->next;
+				}
+				iter->next = current->next;
+				current->next = iter;
+				iter = temp;
+				continue;
+			}
+
+			/* Iter goes before the current head.  It has run less. */
 			if(iter->run_count < scheduler->priority_array[i]->head->run_count){
 				temp = iter->next;
 				iter->next = scheduler->priority_array[i]->head;
 				scheduler->priority_array[i]->head = iter;
 				iter = temp;	
 			}else {
-
+			/* Iter goes after the current head.  It has more. */
 				temp = iter->next;
+				/* Continue down list to find a unit that has a bigger count */
 				while(current->next != NULL && current->next->run_count < iter->run_count){
 					current = current->next;
 				}
@@ -68,6 +85,8 @@ void priority_level_sort(){
 				iter = temp;
 			}
 		}
+
+		/* Assign the tail pointer */
 		current = scheduler->priority_array[i]->head;
 		while(current != NULL){
 			if(current->next == NULL){
@@ -75,7 +94,7 @@ void priority_level_sort(){
 			}
 			current = current->next;
 		}
-		scheduler->priority_array[i]->iter = scheduler->priority_array[i]->head->next; 
+		scheduler->priority_array[i]->iter = scheduler->priority_array[i]->head; 
 	}	
 	if(!SUPRESS_PRINTS){
 		printf(ANSI_COLOR_YELLOW"Sorted all priority levels.\n\n"ANSI_COLOR_RESET);
