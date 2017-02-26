@@ -100,7 +100,6 @@ void scheduler_runThread(thread_unit* thread, thread_unit* prev){
 	
 	scheduler->currently_running 		= thread;
 	// scheduler->currently_running->state = RUNNING;
-
 	/* Will execute function that thread points to. */ 
 	
 
