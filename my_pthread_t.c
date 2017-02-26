@@ -994,7 +994,6 @@ void m1(my_pthread_t* thread){
 void _debugging_pthread_mutex(int num){
 
 	clock_t begin, end;
-	
 	begin = clock();
 
 	printf(ANSI_COLOR_RED "\n\nRunning pthread_join() debug test...\n\n" ANSI_COLOR_RESET);
@@ -1028,19 +1027,31 @@ void _debugging_pthread_mutex(int num){
 	for(i=0; i<NUM_PTHREADS;i++){
 		my_pthread_join(pthread_array[i], NULL);
 	}	
-
 	// my_pthread_join(pthread_array[NUM_PTHREADS-1], NULL);
 	
+
+
 	end = clock();
 	double time_spent = (double) (end-begin)/CLOCKS_PER_SEC;
+
+
 	
-	printf("done. total time is: %f milliseconds.\n", time_spent*1000);
+	if(test_counter == num){
+		printf(ANSI_COLOR_GREEN"Successful run with %i threads.\n"ANSI_COLOR_RESET, num);
+	}else{
+		printf(ANSI_COLOR_RED"Failure. Counter is %i but expected %i\n"
+			ANSI_COLOR_RESET, test_counter, num);
+	}
 
 	// while(1){
 	// 	usleep(500000);
 	// 	printf("\tExecuting main!\n");
 	// }
 
+
+
+	printf("Total run time is: %f milliseconds.\n", time_spent*1000);
+	printf(ANSI_COLOR_GREEN"Safely ending.\n"ANSI_COLOR_RESET); 
 
 }
 
@@ -1056,8 +1067,14 @@ int main(int argc, char **argv){
 	// _debugging_pthread_yield();
 	// _debugging_pthread_exit();
 
-	int how_many_threads_ya_want = (int) argv[1];
+	if(argc != 2){
+		printf(ANSI_COLOR_RED"Usage: ./my_pthread_t [NUM_THREADS]\n"ANSI_COLOR_RESET);
+		exit(-1);
+	}
 
+	int how_many_threads_ya_want = atoi(argv[1]);
+
+	printf("%i\n", how_many_threads_ya_want);
 	_debugging_pthread_mutex(how_many_threads_ya_want);
 }
 
