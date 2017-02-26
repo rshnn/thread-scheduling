@@ -20,7 +20,7 @@
 
 
 /* Set this to 1 to hide helper print statements */
-#define SUPRESS_PRINTS 		0
+#define SUPRESS_PRINTS 		1
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -31,9 +31,9 @@
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
 #define PAGE_SIZE 			4096					// Stack size defaults to page size
-#define PRIORITY_LEVELS 	15						// Number of priority levels
+#define PRIORITY_LEVELS 	100						// Number of priority levels
 #define TIME_QUANTUM 		50000 					// 50 ms = 50000 us  
-#define RUNNING_TIME 		30						// Experimental value 
+#define RUNNING_TIME 		200						// Experimental value 
 
 
 

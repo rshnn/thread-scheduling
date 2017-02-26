@@ -166,7 +166,7 @@ void maintenance_cycle(){
 
 
 	/**********************************************************************************
-		Priority Adjustments	 TODO:  all of this 
+		Priority Adjustments	 
 	**********************************************************************************/
 
 
@@ -260,15 +260,13 @@ void maintenance_cycle(){
 	int scheduled_time = 0;
 	/* Picks (PRIORITY_LEVELS - scheduler priority level) number of threads from each scheduler priority level */
 	for(i=0; i<PRIORITY_LEVELS; i++){
+
 		num_quanta = i + 1;
 
 		for(j=0; j<PRIORITY_LEVELS-i; j++){
 			thread_unit* temp;
 			/* if adding thread increases beyond RUNNING_TIME, break */
 			if((scheduled_time+num_quanta) > RUNNING_TIME){
-				printf("\n.....\n");
-				//_print_thread_unit(temp);
-				printf("Doesnt fit.\n");
 				break;
 			}
 
@@ -276,9 +274,6 @@ void maintenance_cycle(){
 				if(temp->state == READY){
 					scheduled_time += num_quanta;
 					temp->time_slice = TIME_QUANTUM * num_quanta;
-
-					printf("schedled time %d, numquant %d\nAdding the following:\n", scheduled_time, num_quanta);
-					_print_thread_unit(temp);
 
 					thread_list_enqueue(scheduler->running, temp);
 				}else{
@@ -289,6 +284,37 @@ void maintenance_cycle(){
 
 
 
+		// thread_unit* iter = scheduler->priority_array[i]->head;
+		// num_quanta = i+1;
+		// thread_unit* prev = NULL;
+		// int count = 0;
+
+		// while(iter != NULL && count <= (PRIORITY_LEVELS-i)){
+
+		// 	if( iter->state == READY && count <= num_quanta ){
+		// 		count++;
+		// 		scheduled_time += num_quanta;
+		// 		iter->time_slice = TIME_QUANTUM * num_quanta;
+
+		// 		if(prev == NULL){
+		// 			//head
+		// 			scheduler->priority_array[i]->head = iter->next;
+		// 			scheduler->priority_array[i]->iter = iter->next;
+		// 			scheduler->priority_array[i]->size--;
+		// 			thread_list_enqueue(scheduler->running, iter);
+		// 		}else{
+
+		// 			thread_list_enqueue(scheduler->running, iter);
+		// 			prev->next = iter->next;
+		// 			scheduler->priority_array[i]->size--;
+		// 			//prev = iter;
+		// 			//iter = iter->next;
+		// 		}
+		// 	}
+
+		// 	prev = iter;
+		// 	iter = iter->next;
+		// }
 
 
 
@@ -334,7 +360,7 @@ void scheduler_init(){
 		scheduler->priority_array[i] = thread_list_init();	// thread_list_init() mallocs
 	}
 
-	/* Initialize the currently running and waiting queues */
+	 // Initialize the currently running and waiting queues 
 	scheduler->running = thread_list_init();
 	scheduler->waiting = thread_list_init();
 
@@ -365,6 +391,7 @@ void scheduler_init(){
 	main_thread_unit->thread->priority = 0;
 	main_thread_unit->thread->thread_unit = main_thread_unit;
 
+	scheduler->currently_running = main_thread_unit;
 
 	/* MAIN UCONTEXT SETUP */
 
@@ -648,17 +675,27 @@ void my_pthread_exit(void *value_ptr){
 
 int my_pthread_join(my_pthread_t thread, void **value_ptr){
 
+	_print_thread_unit(scheduler->currently_running);
+
 	if(thread.thread_unit == NULL){
-		printf("Thread to join does not exist\n");
+		printf(ANSI_COLOR_RED"Thread to join does not exist\n"ANSI_COLOR_RESET);
 		return -1;
 	}
+
+	if(thread.threadID == -1){
+		printf(ANSI_COLOR_RED"\tThread to join has already exited.\n"ANSI_COLOR_RESET);
+		return -1;
+	}
+
 	if(scheduler->currently_running->thread->threadID == thread.threadID){
-		printf("Trying to join itself. curr_running->thread->threadID: %ld and thread.threadID: %ld\n",
+		printf(ANSI_COLOR_RED"Trying to join itself. curr_running->thread->threadID: %ld and thread.threadID: %ld\n"ANSI_COLOR_RESET,
 		 scheduler->currently_running->thread->threadID, thread.threadID);
 		return -1;
 	}
+
+
 	if(scheduler->currently_running->state != RUNNING){
-		printf("Not possible to join because I am not ready\n");
+		printf(ANSI_COLOR_RED"Not possible to join because I am not ready\n"ANSI_COLOR_RESET);
 		return -1;
 	}
 
@@ -942,8 +979,8 @@ void m1(my_pthread_t* thread){
 
 	printf("\tI (TID %ld) got the lock", thread->threadID);	
 
-	test_counter+= thread->threadID;
-
+	// test_counter+= thread->threadID;
+	test_counter++;
 	printf("\tI changed the counter to:\t\t"ANSI_COLOR_RED" %i\n"ANSI_COLOR_RESET, test_counter);
 
 	my_pthread_yield();
@@ -958,7 +995,7 @@ void _debugging_pthread_mutex(){
 
 		printf(ANSI_COLOR_RED "\n\nRunning pthread_join() debug test...\n\n" ANSI_COLOR_RESET);
 	
-	int NUM_PTHREADS = 5;
+	int NUM_PTHREADS = 100;
 
 
 	// my_pthread_t pthread_array[NUM_PTHREADS];
@@ -981,19 +1018,21 @@ void _debugging_pthread_mutex(){
 		
 	} 
 
+
+
 	/* Main joins all pthreads */
-	// for(i=0; i<NUM_PTHREADS;i++){
-	// 	my_pthread_join(pthread_array[i], NULL);
-	// }	
+	for(i=0; i<NUM_PTHREADS;i++){
+		my_pthread_join(pthread_array[i], NULL);
+	}	
 
 	// my_pthread_join(pthread_array[NUM_PTHREADS-1], NULL);
 	
+	printf("done.\n");
 
-
-	while(1){
-		usleep(500000);
-		printf("\tExecuting main!\n");
-	}
+	// while(1){
+	// 	usleep(500000);
+	// 	printf("\tExecuting main!\n");
+	// }
 
 
 }
