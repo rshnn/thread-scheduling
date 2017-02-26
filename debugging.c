@@ -226,3 +226,77 @@ void _debugging_pthread_join(){
 		printf("\tExecuting main!\n");
 	}
 }
+
+
+
+
+void _debugging_pthread_mutex(int num){
+
+
+  	struct timeval start, end;
+  	gettimeofday(&start, NULL);
+
+
+	printf(ANSI_COLOR_RED "\n\nRunning pthread_join() debug test...\n\n" ANSI_COLOR_RESET);
+	
+	int NUM_PTHREADS = num;
+
+
+	// my_pthread_t pthread_array[NUM_PTHREADS];
+	my_pthread_t* pthread_array = (my_pthread_t*)malloc(NUM_PTHREADS * sizeof(my_pthread_t));
+	my_pthread_attr_t* useless_attr;
+	my_pthread_mutexattr_t* useless_mattr;
+
+	my_pthread_mutex_init(&mutex, useless_mattr);
+
+	int i;
+
+	for(i=0; i<NUM_PTHREADS;i++){
+
+		/* TID all: lock mutex 1.  increment global counter.  unlock.  exit */
+		if(my_pthread_create(&pthread_array[i], useless_attr, (void*)m1, (void*) &pthread_array[i])){
+			printf(ANSI_COLOR_GREEN "Successfully created m1 pthread and enqueued. TID %ld\n" 
+				ANSI_COLOR_RESET, pthread_array[i].threadID);
+		}
+
+		
+	} 
+
+
+
+	/* Main joins all pthreads */
+	for(i=0; i<NUM_PTHREADS;i++){
+		my_pthread_join(pthread_array[i], NULL);
+	}	
+	// my_pthread_join(pthread_array[NUM_PTHREADS-1], NULL);
+	
+
+
+
+  	gettimeofday(&end, NULL);
+
+  	long int total_time = (end.tv_sec*1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec);
+
+
+	
+	if(test_counter == num){
+		printf(ANSI_COLOR_GREEN"\nSuccessful run with %i threads.\n"ANSI_COLOR_RESET, num);
+	}else{
+		printf(ANSI_COLOR_RED"\nFailure. Counter is %i but expected %i\n"
+			ANSI_COLOR_RESET, test_counter, num);
+	}
+
+	// while(1){
+	// 	usleep(500000);
+	// 	printf("\tExecuting main!\n");
+	// }
+
+
+
+
+
+
+	printf("Total run time is: %ld microseconds.\n", total_time);
+	printf(ANSI_COLOR_GREEN"Safely ending.\n"ANSI_COLOR_RESET); 
+
+}

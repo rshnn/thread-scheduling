@@ -14,9 +14,11 @@ int 				SYS_MODE 				= 0;
 int 				scheduler_initialized 	= 0;
 int 				first_run_complete		= 0;
 int					mutex_count = 0;
-int 				test_counter = 0;
+int 				test_counter1 = 0;
+int 				test_counter2 = 0;
 
-my_pthread_mutex_t mutex;
+my_pthread_mutex_t test_mutex1;
+my_pthread_mutex_t test_mutex2;
 
 thread_unit*		maintenance_thread_unit;
 thread_unit* 		main_thread_unit;
@@ -959,24 +961,41 @@ void f3(my_pthread_t* thread){
 
 void m1(my_pthread_t* thread){
 
-	my_pthread_mutex_lock(&mutex);
+	my_pthread_mutex_lock(&test_mutex1);
 
-	printf("\tI (TID %ld) got the lock", thread->threadID);	
+	printf("\tm1: I (TID %ld) got the lock", thread->threadID);	
 
 	// test_counter+= thread->threadID;
-	test_counter++;
-	printf("\tI changed the counter to:\t\t"ANSI_COLOR_RED" %i\n"ANSI_COLOR_RESET, test_counter);
+	test_counter1++;
+	printf("\tm1: I changed the counter1 to:\t\t"ANSI_COLOR_RED" %i\n"ANSI_COLOR_RESET, test_counter1);
 
 	my_pthread_yield();
-	my_pthread_mutex_unlock(&mutex);
+	my_pthread_mutex_unlock(&test_mutex1);
+	my_pthread_exit(NULL);
+}
+
+void m2(my_pthread_t* thread){
+
+	my_pthread_mutex_lock(&test_mutex2);
+
+	printf("\tm2: I (TID %ld) got the lock", thread->threadID);	
+
+	// test_counter+= thread->threadID;
+	test_counter2++;
+	printf("\tm2: I changed the counter2 to:\t\t"ANSI_COLOR_RED" %i\n"ANSI_COLOR_RESET, test_counter2);
+
+	my_pthread_yield();
+	my_pthread_mutex_unlock(&test_mutex2);
 	my_pthread_exit(NULL);
 }
 
 
 
-
-void _debugging_pthread_mutex(int num){
-
+/*
+	
+	
+*/
+void test_function(int num){
 
   	struct timeval start, end;
   	gettimeofday(&start, NULL);
@@ -992,17 +1011,29 @@ void _debugging_pthread_mutex(int num){
 	my_pthread_attr_t* useless_attr;
 	my_pthread_mutexattr_t* useless_mattr;
 
-	my_pthread_mutex_init(&mutex, useless_mattr);
+	my_pthread_mutex_init(&test_mutex1, useless_mattr);
+	my_pthread_mutex_init(&test_mutex2, useless_mattr);
 
 	int i;
 
 	for(i=0; i<NUM_PTHREADS;i++){
 
-		/* TID all: lock mutex 1.  increment global counter.  unlock.  exit */
-		if(my_pthread_create(&pthread_array[i], useless_attr, (void*)m1, (void*) &pthread_array[i])){
-			printf(ANSI_COLOR_GREEN "Successfully created m1 pthread and enqueued. TID %ld\n" 
-				ANSI_COLOR_RESET, pthread_array[i].threadID);
+		// For evens
+		if(i%2 == 0){
+			/* TID all: lock mutex 1.  increment global counter.  unlock.  exit */
+			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)m1, (void*) &pthread_array[i])){
+				printf(ANSI_COLOR_GREEN "Successfully created m1 pthread and enqueued. TID %ld\n" 
+					ANSI_COLOR_RESET, pthread_array[i].threadID);
+			}
+		}else{
+		// For odds
+			/* TID all: lock mutex 2.  increment global counter.  unlock.  exit */
+			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)m2, (void*) &pthread_array[i])){
+				printf(ANSI_COLOR_GREEN "Successfully created m2 pthread and enqueued. TID %ld\n" 
+					ANSI_COLOR_RESET, pthread_array[i].threadID);
+			}
 		}
+
 
 		
 	} 
@@ -1024,22 +1055,12 @@ void _debugging_pthread_mutex(int num){
 
 
 	
-	if(test_counter == num){
+	if((test_counter1 + test_counter2) == num){
 		printf(ANSI_COLOR_GREEN"\nSuccessful run with %i threads.\n"ANSI_COLOR_RESET, num);
 	}else{
-		printf(ANSI_COLOR_RED"\nFailure. Counter is %i but expected %i\n"
-			ANSI_COLOR_RESET, test_counter, num);
+		printf(ANSI_COLOR_RED"\nFailure. Counters are 1: %i and 2: %i but expected %i\n"
+			ANSI_COLOR_RESET, test_counter1, test_counter2, num);
 	}
-
-	// while(1){
-	// 	usleep(500000);
-	// 	printf("\tExecuting main!\n");
-	// }
-
-
-
-
-
 
 	printf("Total run time is: %ld microseconds.\n", total_time);
 	printf(ANSI_COLOR_GREEN"Safely ending.\n"ANSI_COLOR_RESET); 
@@ -1049,14 +1070,15 @@ void _debugging_pthread_mutex(int num){
 int main(int argc, char **argv){
 
 	 
-		// View the debugging.c file to view the old debugging functions.
-		// NOTE:  They might not all work.  Stuff might have changed since then 
-	
+	// View the debugging.c file to view the old debugging functions.
+	// NOTE:  They might not all work.  Stuff might have changed since then 
+
 
 	// _debugging_thread_unit_lib();
 	// _debugging_pthread_create();
 	// _debugging_pthread_yield();
 	// _debugging_pthread_exit();
+	// _debugging_pthread_mutex(how_many_threads_ya_want);
 
 	if(argc != 2){
 		printf(ANSI_COLOR_RED"Usage: ./my_pthread_t [NUM_THREADS]\n"ANSI_COLOR_RESET);
@@ -1064,10 +1086,8 @@ int main(int argc, char **argv){
 	}
 
 	int how_many_threads_ya_want = atoi(argv[1]);
-
 	printf("%i\n", how_many_threads_ya_want);
 
-
-	_debugging_pthread_mutex(how_many_threads_ya_want);
+	test_function(how_many_threads_ya_want);
 }
 

@@ -38,9 +38,6 @@
 #define RUNNING_TIME 		50						// Experimental value 
 
 
-
-// /* For testing with msort */
-
 // #define mypthread_create	my_pthread_create
 // #define mypthread_exit		my_pthread_exit
 // #define mypthread_yield		my_pthread_yield
