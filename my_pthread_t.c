@@ -240,9 +240,9 @@ void maintenance_cycle(){
 				
 				// free(temp->ucontext->uc_stack.ss_sp);
 				printf("success 1\n");
-				// free(temp->ucontext);
+				free(temp->ucontext);
 				printf("success 2\n");
-				// free(temp);  // Free the thread_unit in maint_cycle after ucontext 
+				free(temp);  // Free the thread_unit in maint_cycle after ucontext 
 				printf("success 3\n");
 				continue;
 			}
@@ -1008,7 +1008,6 @@ void m1(my_pthread_t* thread){
 	my_pthread_yield();
 
 	my_pthread_mutex_unlock(&mutex);
-	printf("\tTID %ld is releasing the lock.", thread->threadID);
 
 	my_pthread_exit(NULL);
 }
