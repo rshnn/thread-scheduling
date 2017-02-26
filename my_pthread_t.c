@@ -56,9 +56,9 @@ void priority_level_sort(){
 			if(iter->state == WAITING){
 				temp = iter->next;
 				while(current->next != NULL){
-					// if(current->next->state != WAITING){
-					// 	break;
-					// }
+					if(current->next->state == WAITING){
+						break;
+					}
 					current = current->next;
 				}
 				iter->next = current->next;
