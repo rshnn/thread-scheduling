@@ -36,7 +36,7 @@ void priority_level_sort(){
 	thread_unit* current = NULL;
 	thread_unit* temp;
 	
-	_print_thread_list(scheduler->priority_array[0]);
+	// _print_thread_list(scheduler->priority_array[0]);
 	// if(thread_list_isempty(scheduler->priority_array[0])){
 	// 	return;
 	// }
@@ -153,12 +153,12 @@ void maintenance_cycle(){
 		printf(ANSI_COLOR_YELLOW "\n------------------------------------------------" ANSI_COLOR_RESET);
 		printf(ANSI_COLOR_YELLOW "\nMaintenance Cycle\n" ANSI_COLOR_RESET);
 
-		printf(ANSI_COLOR_YELLOW "The old running queue:\n"ANSI_COLOR_RESET);
+		printf(ANSI_COLOR_YELLOW "OLD: running queue:\n"ANSI_COLOR_RESET);
 		_print_thread_list(scheduler->running);
 
 		printf("\n");
 		for(i=0; i<PRIORITY_LEVELS; i++){
-			printf(ANSI_COLOR_YELLOW "The old queue with threads of priority %d:\n" ANSI_COLOR_RESET, i);
+			printf(ANSI_COLOR_YELLOW "OLD: Priority Level %d:\n" ANSI_COLOR_RESET, i);
 			_print_thread_list(scheduler->priority_array[i]);
 		}
 		printf("\n");
@@ -179,6 +179,7 @@ void maintenance_cycle(){
 				int new_priority = temp->priority;
 				new_priority--;
 				temp->priority = new_priority;
+				temp->thread->priority = new_priority;
 				thread_list_enqueue(scheduler->priority_array[new_priority], temp);
 			}
 
@@ -207,6 +208,7 @@ void maintenance_cycle(){
 											"Send to priority %i.\n"
 							ANSI_COLOR_RESET, temp->thread->threadID, (PRIORITY_LEVELS/3));
 					temp->priority = (PRIORITY_LEVELS/3);
+					temp->thread->priority = (PRIORITY_LEVELS/3);
 			
 				}else{
 					int new_priority = temp->priority;
@@ -215,6 +217,8 @@ void maintenance_cycle(){
 						new_priority = PRIORITY_LEVELS-1;
 					}
 					temp->priority = new_priority;
+					temp->thread->priority = new_priority;
+
 				}
 
 				
@@ -230,6 +234,15 @@ void maintenance_cycle(){
 		}
 	}
 
+
+	if(!SUPRESS_PRINTS){	
+	printf(ANSI_COLOR_YELLOW"...............\n"ANSI_COLOR_RESET);
+		for(i=0; i<PRIORITY_LEVELS; i++){
+			printf(ANSI_COLOR_YELLOW "INTERMEDIATE: Priority Level %d:\n" ANSI_COLOR_RESET, i);
+			_print_thread_list(scheduler->priority_array[i]);
+		}
+	printf(ANSI_COLOR_YELLOW"...............\n"ANSI_COLOR_RESET);
+	}
 
 	/**********************************************************************************
 		Populate running queue
@@ -253,6 +266,9 @@ void maintenance_cycle(){
 			thread_unit* temp;
 			/* if adding thread increases beyond RUNNING_TIME, break */
 			if((scheduled_time+num_quanta) > RUNNING_TIME){
+				printf("\n.....\n");
+				//_print_thread_unit(temp);
+				printf("Doesnt fit.\n");
 				break;
 			}
 
@@ -260,22 +276,34 @@ void maintenance_cycle(){
 				if(temp->state == READY){
 					scheduled_time += num_quanta;
 					temp->time_slice = TIME_QUANTUM * num_quanta;
+
+					printf("schedled time %d, numquant %d\nAdding the following:\n", scheduled_time, num_quanta);
+					_print_thread_unit(temp);
+
 					thread_list_enqueue(scheduler->running, temp);
 				}else{
 					thread_list_enqueue(scheduler->priority_array[i], temp);
 				}
 			}
 		}
+
+
+
+
+
+
+
+
 	}
 
 
 	/* Helper prints */
 	if(!SUPRESS_PRINTS){	
-		printf(ANSI_COLOR_YELLOW "The new running queue:\n" ANSI_COLOR_RESET);
+		printf(ANSI_COLOR_YELLOW "NEW: running queue:\n" ANSI_COLOR_RESET);
 			_print_thread_list(scheduler->running);
 	
 			for(i=0; i<PRIORITY_LEVELS; i++){
-				printf(ANSI_COLOR_YELLOW "The current queue with threads of priority %d:\n" ANSI_COLOR_RESET, i+1);
+				printf(ANSI_COLOR_YELLOW "NEW: Priority Level %d:\n" ANSI_COLOR_RESET, i);
 				_print_thread_list(scheduler->priority_array[i]);
 			}
 	
@@ -330,6 +358,7 @@ void scheduler_init(){
 	main_thread_unit->wait_next = NULL;
 	main_thread_unit->waiting_on_me = thread_list_init();
 	main_thread_unit->next = NULL;
+	main_thread_unit->priority = 0;
 
 	main_thread_unit->thread = (my_pthread_t*)malloc(sizeof(my_pthread_t));
 	main_thread_unit->thread->threadID = 1;
@@ -344,30 +373,23 @@ void scheduler_init(){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 		exit(-1);
 	}
-
 	/* copy (fork) the current ucontext */
 	if(getcontext(main_thread_unit->ucontext) == -1){
 		printf("Error obtaining ucontext of scheduler");
 		exit(-1);
 	} 
-
 	/* Set up ucontext stack */
-	// if((main_thread_unit->ucontext->uc_stack.ss_sp = malloc(PAGE_SIZE))==NULL){
-	// 	printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
-	// 	exit(-1);
-	// }
 	main_thread_unit->ucontext->uc_stack.ss_sp 		= main_thread_unit->stack;
 	main_thread_unit->ucontext->uc_stack.ss_size 	= PAGE_SIZE;
-
 	/* Set uc_link to point to addr of main_ucontext */
 	main_thread_unit->ucontext->uc_link 			= main_thread_unit->ucontext;
-
 	/* Assign func* to ucontext */
 	makecontext(main_thread_unit->ucontext, (void*)scheduler_sig_handler, 1, NULL); 	// Should we write a separate scheduler_run_thread call?
-    
+
+
 
 	/* MAINTENANCE UCONTEXT SETUP */
-	
+
 	/* Attempt to malloc space for maintenance_ucontext */
 	if ((maintenance_thread_unit->ucontext = (ucontext_t*)malloc(sizeof(ucontext_t))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
@@ -379,24 +401,16 @@ void scheduler_init(){
 		printf("Error obtaining ucontext of scheduler");
 		exit(-1);
 	} 
-
 	/* Set up ucontext stack */
-	// if((maintenance_thread_unit->ucontext->uc_stack.ss_sp = malloc(PAGE_SIZE))==NULL){
-	// 	printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
-	// 	exit(-1);
-	// }
-
 	maintenance_thread_unit->ucontext->uc_stack.ss_sp 	= maintenance_thread_unit->stack;	
 	maintenance_thread_unit->ucontext->uc_stack.ss_size 	= PAGE_SIZE;
-
-
 	/* Set uc_link to point to addr of maintenance_ucontext */
 	maintenance_thread_unit->ucontext->uc_link 			= main_thread_unit->ucontext;
-
 	/* Assign func* to ucontext */
 	makecontext(maintenance_thread_unit->ucontext, (void*)maintenance_cycle, 1, NULL); 	// Should we write a separate scheduler_run_thread call?
-	
+
 	/* </end> UCONTEXT STUFF */     
+
 
 
 
@@ -490,8 +504,6 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 	// }
 	new_unit->ucontext->uc_stack.ss_sp 	= new_unit->stack;
 	new_unit->ucontext->uc_stack.ss_size 	= PAGE_SIZE;
-		/* wtf is happening here^?  I found this online somewhere.  Is it working?*/
-
 
 	/* Set uc_link to point to addr of scheduler's ucontext */
 	new_unit->ucontext->uc_link 			= maintenance_thread_unit->ucontext;
@@ -508,6 +520,7 @@ int my_pthread_create( my_pthread_t * thread, my_pthread_attr_t * attr, void *(*
 	// into highest priority bc heuristics say so 
 
 	new_unit->priority 	= 0;
+	new_unit->thread->priority = 0;
 	new_unit->state 	= READY;
 	thread_list_enqueue(scheduler->priority_array[0], new_unit);
 
@@ -635,9 +648,6 @@ void my_pthread_exit(void *value_ptr){
 
 int my_pthread_join(my_pthread_t thread, void **value_ptr){
 
-	/* 
-		TODO: Test 
-	*/
 	if(thread.thread_unit == NULL){
 		printf("Thread to join does not exist\n");
 		return -1;
@@ -656,42 +666,8 @@ int my_pthread_join(my_pthread_t thread, void **value_ptr){
 
 	scheduler->currently_running->joinedID = thread.threadID;
 	scheduler->currently_running->state = WAITING;
-	//my_pthread_yield();
-	// scheduler->currently_running->thread->return_val = value_ptr;
 
 	thread_list_enqueue_wait(thread.thread_unit->waiting_on_me, scheduler->currently_running);
-
-	// thread_list_enqueue_wait(scheduler->waiting, scheduler->currently_running);
-	// thread_list_enqueue(scheduler->priority_array[scheduler->currently_running->thread->priority], scheduler->currently_running);
-
-	/*******************************************************/
-
-	// /* 
-	// 	TEMP FOR TESTING
-	// 		Adding curr_running to the waiting queue.  This job will be done by the scheduler.
-	// 		Move this stuff there when ready.
-	// 		NOTE:  using wait_next. NOT the enqueue functions. 
-	// */
-
-	// thread_unit* unit 	= scheduler->currently_running;
-	// //unit->wait_next 	= NULL;
-
-	// // Enqueue on an empty list
-	// if(thread_list_isempty(scheduler->waiting)){
-	// 	scheduler->waiting->head 			= unit;
-	// 	scheduler->waiting->tail 			= unit;
-	// 	scheduler->waiting->iter 			= unit;
-
-	// // Default: Add at end and redirect tail
-	// }else{
-	// 	scheduler->waiting->tail->wait_next		= unit;
-	// 	scheduler->waiting->tail 				= unit;
-	// }
-
-	// scheduler->waiting->size++;
-	// /*******************************************************/	
-
-
 
 
 	my_pthread_yield();
@@ -768,7 +744,8 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 		temp->mutex_next = scheduler->currently_running;
 		scheduler->currently_running->state = WAITING;
 		my_pthread_yield();
-		printf(ANSI_COLOR_CYAN"\tI got the lock. TID %ld\n"ANSI_COLOR_RESET, scheduler->currently_running->thread->threadID);
+		printf(ANSI_COLOR_CYAN"\tThe lock (ID: %d) is granted to TID %ld\n"ANSI_COLOR_RESET, 
+								mutex->id, scheduler->currently_running->thread->threadID);
 		mutex->lock = 1;
 		mutex->owner = scheduler->currently_running->thread->threadID;
 		return 0;
@@ -1008,6 +985,8 @@ void _debugging_pthread_mutex(){
 	// for(i=0; i<NUM_PTHREADS;i++){
 	// 	my_pthread_join(pthread_array[i], NULL);
 	// }	
+
+	// my_pthread_join(pthread_array[NUM_PTHREADS-1], NULL);
 	
 
 

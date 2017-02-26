@@ -245,8 +245,8 @@ void _print_thread_unit(thread_unit* unit){
 		return;
 	}
 
-	printf(ANSI_COLOR_CYAN "TheadID: %ld\t State: %s\t\tRun count: %i\n" ANSI_COLOR_RESET,
-	 unit->thread->threadID, _stringify_state(unit->state), unit->run_count);
+	printf(ANSI_COLOR_CYAN "TheadID: %ld\t State: %s\t\tRun count: %i\t\tPriority: %i\n" ANSI_COLOR_RESET,
+	 unit->thread->threadID, _stringify_state(unit->state), unit->run_count, unit->priority);
 }
 
 
