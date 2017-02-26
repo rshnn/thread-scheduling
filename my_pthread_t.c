@@ -993,8 +993,10 @@ void m1(my_pthread_t* thread){
 
 void _debugging_pthread_mutex(int num){
 
-	clock_t begin, end;
-	begin = clock();
+
+  	struct timeval start, end;
+  	gettimeofday(&start, NULL);
+
 
 	printf(ANSI_COLOR_RED "\n\nRunning pthread_join() debug test...\n\n" ANSI_COLOR_RESET);
 	
@@ -1031,15 +1033,17 @@ void _debugging_pthread_mutex(int num){
 	
 
 
-	end = clock();
-	double time_spent = (double) (end-begin)/CLOCKS_PER_SEC;
+
+  	gettimeofday(&end, NULL);
+
+  	long int total_time = (end.tv_sec*1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec);
 
 
 	
 	if(test_counter == num){
-		printf(ANSI_COLOR_GREEN"Successful run with %i threads.\n"ANSI_COLOR_RESET, num);
+		printf(ANSI_COLOR_GREEN"\nSuccessful run with %i threads.\n"ANSI_COLOR_RESET, num);
 	}else{
-		printf(ANSI_COLOR_RED"Failure. Counter is %i but expected %i\n"
+		printf(ANSI_COLOR_RED"\nFailure. Counter is %i but expected %i\n"
 			ANSI_COLOR_RESET, test_counter, num);
 	}
 
@@ -1050,7 +1054,10 @@ void _debugging_pthread_mutex(int num){
 
 
 
-	printf("Total run time is: %f milliseconds.\n", time_spent*1000);
+
+
+
+	printf("Total run time is: %ld microseconds.\n", total_time);
 	printf(ANSI_COLOR_GREEN"Safely ending.\n"ANSI_COLOR_RESET); 
 
 }
@@ -1075,6 +1082,8 @@ int main(int argc, char **argv){
 	int how_many_threads_ya_want = atoi(argv[1]);
 
 	printf("%i\n", how_many_threads_ya_want);
+
+
 	_debugging_pthread_mutex(how_many_threads_ya_want);
 }
 
