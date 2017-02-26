@@ -240,6 +240,11 @@ const char* _stringify_state(state s){
 
 /* DEBUGGING ONLY: Print out thread unit */
 void _print_thread_unit(thread_unit* unit){
+
+	if(SUPRESS_PRINTS){
+		return;
+	}
+
 	printf(ANSI_COLOR_CYAN "TheadID: %ld\t State: %s\t\tRun count: %i\n" ANSI_COLOR_RESET,
 	 unit->thread->threadID, _stringify_state(unit->state), unit->run_count);
 }
@@ -247,6 +252,10 @@ void _print_thread_unit(thread_unit* unit){
 
 /* DEBUGGING ONLY: Print out thread list */
 void _print_thread_list(thread_unit_list* list){
+
+	if(SUPRESS_PRINTS){
+		return;
+	}
 
 	thread_unit* temp;
 
@@ -273,6 +282,11 @@ void _print_thread_list(thread_unit_list* list){
 
 /* DEBUGGING ONLY: Print out thread wait list */
 void _print_thread_list_wait(thread_unit_list* list){
+
+
+	if(SUPRESS_PRINTS){
+		return;
+	}
 
 	thread_unit* temp;
 

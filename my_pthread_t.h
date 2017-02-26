@@ -18,6 +18,10 @@
 #include <signal.h>
 #include <ucontext.h>
 
+
+/* Set this to 1 to hide helper print statements */
+#define SUPRESS_PRINTS 		1
+
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
 #define ANSI_COLOR_YELLOW  "\x1b[33m"

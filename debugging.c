@@ -160,3 +160,69 @@ void _debugging_pthread_yield(){
 
 }
 
+
+void _debugging_pthread_join(){
+
+	printf(ANSI_COLOR_RED "\n\nRunning pthread_join() debug test...\n\n" ANSI_COLOR_RESET);
+	
+	int NUM_PTHREADS = 5;
+
+
+	// my_pthread_t pthread_array[NUM_PTHREADS];
+	my_pthread_t* pthread_array = (my_pthread_t*)malloc(NUM_PTHREADS * sizeof(my_pthread_t));
+	my_pthread_attr_t* useless_attr;
+
+	int i;
+
+	for(i=0; i<NUM_PTHREADS;i++){
+
+		/* TID 2: Give last pthread functionptr to f2 (f2 terminates after a few seconds) */
+		if(i == 0){
+			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f2, (void*) i)){
+				printf(ANSI_COLOR_GREEN "Successfully created f2 pthread and enqueued. TID %ld\n" 
+					ANSI_COLOR_RESET, pthread_array[i].threadID);
+			}
+			continue;
+		}
+		
+		/* TID 3:  f3 (joins TID2) */
+		if(i == 1){
+			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f3, (void*) &pthread_array[0])){
+				printf(ANSI_COLOR_GREEN "Successfully created f3 pthread and enqueued. TID %ld\n" 
+					ANSI_COLOR_RESET, pthread_array[i].threadID);
+			}
+			continue;
+		}
+
+		/* TID 4: f3 (joins TID2) */
+		if(i == 2){
+			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f3, (void*) &pthread_array[0])){
+				printf(ANSI_COLOR_GREEN "Successfully created f3 pthread and enqueued. TID %ld\n" 
+					ANSI_COLOR_RESET, pthread_array[i].threadID);
+			}
+			continue;
+		}
+
+
+
+
+		if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f1, (void*) i)){
+			printf(ANSI_COLOR_GREEN "Successfully created f1 pthread and enqueued. TID %ld\n" 
+					ANSI_COLOR_RESET, pthread_array[i].threadID);
+		}
+	} 
+
+
+
+	printf("\nPrinting priority array 0 (Inside main).  Should include pthreads 2 to 6.\n");
+	_print_thread_list(scheduler->priority_array[0]);
+
+
+	/* Main joins on thread2 */
+
+
+	while(1){
+		usleep(500000);
+		printf("\tExecuting main!\n");
+	}
+}

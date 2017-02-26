@@ -41,20 +41,17 @@ void priority_level_sort(){
 	// 	return;
 	// }
 
+
 	for(i = 0; i < PRIORITY_LEVELS;i++){
-		printf("Sorting priority %d \n",i);
 		current = scheduler->priority_array[i]->head; //
 		if(current == NULL){
-			// printf("Priority %d is empty\n",i);
 			continue;
 		}
 		iter 	= current->next;
 		current->next = NULL;
 		while(iter != NULL){
 			current = scheduler->priority_array[i]->head;
-			// _print_thread_unit(current);
-			// _print_thread_unit(iter);
-			// printf("\n\n");
+
 			if(iter->run_count < scheduler->priority_array[i]->head->run_count){
 				temp = iter->next;
 				iter->next = scheduler->priority_array[i]->head;
@@ -73,7 +70,6 @@ void priority_level_sort(){
 		}
 		current = scheduler->priority_array[i]->head;
 		while(current != NULL){
-			//printf("TID %ld: run_count: %d \n",current->thread->threadID,current->run_count);
 			if(current->next == NULL){
 				scheduler->priority_array[i]->tail = current;
 			}
@@ -81,8 +77,10 @@ void priority_level_sort(){
 		}
 		scheduler->priority_array[i]->iter = scheduler->priority_array[i]->head->next; 
 	}	
+	if(!SUPRESS_PRINTS){
+		printf(ANSI_COLOR_YELLOW"Sorted all priority levels.\n\n"ANSI_COLOR_RESET);
+	}
 }
-
 
 void scheduler_runThread(thread_unit* thread, thread_unit* prev){
 
@@ -92,10 +90,6 @@ void scheduler_runThread(thread_unit* thread, thread_unit* prev){
 		printf(ANSI_COLOR_RED "Attempted to schedule a NULL thread\n"ANSI_COLOR_RESET);
 		return;
 	}
-
-	// if(scheduler->currently_running->state == RUNNING){
-	// 	scheduler->currently_running->state = READY;
-	// }
 
 	
 	scheduler->currently_running 		= thread;
@@ -127,7 +121,7 @@ void scheduler_sig_handler(){
 
 
 	if(SYS_MODE == 1){
-		printf("TIMER: In the middle of shit.\n");
+		printf("NEGATE SIGARLM: In the middle of a scheduler/pthread call.\n");
 		return;
 	}
 
@@ -154,19 +148,21 @@ void maintenance_cycle(){
 	int i;
 	thread_unit* temp;
 
-	
-	printf(ANSI_COLOR_YELLOW "\n------------------------------------------------" ANSI_COLOR_RESET);
-	printf(ANSI_COLOR_YELLOW "\nMaintenance Cycle\n" ANSI_COLOR_RESET);
+	/* Helper prints */
+	if(!SUPRESS_PRINTS){
+		printf(ANSI_COLOR_YELLOW "\n------------------------------------------------" ANSI_COLOR_RESET);
+		printf(ANSI_COLOR_YELLOW "\nMaintenance Cycle\n" ANSI_COLOR_RESET);
 
-	printf(ANSI_COLOR_YELLOW "The old running queue:\n"ANSI_COLOR_RESET);
-	_print_thread_list(scheduler->running);
+		printf(ANSI_COLOR_YELLOW "The old running queue:\n"ANSI_COLOR_RESET);
+		_print_thread_list(scheduler->running);
 
-	printf("\n");
-	for(i=0; i<PRIORITY_LEVELS; i++){
-		printf(ANSI_COLOR_YELLOW "The old queue with threads of priority %d:\n" ANSI_COLOR_RESET, i);
-		_print_thread_list(scheduler->priority_array[i]);
+		printf("\n");
+		for(i=0; i<PRIORITY_LEVELS; i++){
+			printf(ANSI_COLOR_YELLOW "The old queue with threads of priority %d:\n" ANSI_COLOR_RESET, i);
+			_print_thread_list(scheduler->priority_array[i]);
+		}
+		printf("\n");
 	}
-	printf("\n");
 
 
 	/**********************************************************************************
@@ -192,7 +188,6 @@ void maintenance_cycle(){
 
 	priority_level_sort();
 
-	printf("Done sorting.\n");
 	/**********************************************************************************
 		ADD RUNNING BACK IN 	 
 	**********************************************************************************/
@@ -202,18 +197,14 @@ void maintenance_cycle(){
 
 		if((temp = thread_list_dequeue(scheduler->running)) != NULL){
 
-			printf("after dequeue\n");
-
 			if(temp->state != TERMINATED){
 				/* lower a thread's priority before putting it back into multi-priority	queue */
-			
-				printf("after terminated\n");
 
 				if(temp->priority > (PRIORITY_LEVELS/3) && 
 					(!thread_list_isempty(temp->waiting_on_me) || temp->mutex_next != NULL)){
 					/* Case to handle priority inversion */
 					printf(ANSI_COLOR_MAGENTA "This thread (TID %ld) is valued by others."  
-											"Send to Priorit %i.\n"
+											"Send to priority %i.\n"
 							ANSI_COLOR_RESET, temp->thread->threadID, (PRIORITY_LEVELS/3));
 					temp->priority = (PRIORITY_LEVELS/3);
 			
@@ -229,15 +220,9 @@ void maintenance_cycle(){
 				
 				thread_list_enqueue(scheduler->priority_array[temp->priority], temp);
 			}else{
-				printf("in else\n");
-				//_print_thread_unit(temp);
 				
-				// free(temp->ucontext->uc_stack.ss_sp);
-				printf("success 1\n");
 				free(temp->ucontext);
-				printf("success 2\n");
 				free(temp);  // Free the thread_unit in maint_cycle after ucontext 
-				printf("success 3\n");
 				continue;
 			}
 
@@ -284,21 +269,18 @@ void maintenance_cycle(){
 	}
 
 
-	/* Test prints */
-
-	// printf(ANSI_COLOR_YELLOW "The new waiting queue:\n"ANSI_COLOR_RESET);
-	// _print_thread_list_wait(scheduler->waiting);
-
-	printf(ANSI_COLOR_YELLOW "The new running queue:\n" ANSI_COLOR_RESET);
-	_print_thread_list(scheduler->running);
-
-	for(i=0; i<PRIORITY_LEVELS; i++){
-		printf(ANSI_COLOR_YELLOW "The current queue with threads of priority %d:\n" ANSI_COLOR_RESET, i+1);
-		_print_thread_list(scheduler->priority_array[i]);
+	/* Helper prints */
+	if(!SUPRESS_PRINTS){	
+		printf(ANSI_COLOR_YELLOW "The new running queue:\n" ANSI_COLOR_RESET);
+			_print_thread_list(scheduler->running);
+	
+			for(i=0; i<PRIORITY_LEVELS; i++){
+				printf(ANSI_COLOR_YELLOW "The current queue with threads of priority %d:\n" ANSI_COLOR_RESET, i+1);
+				_print_thread_list(scheduler->priority_array[i]);
+			}
+	
+			printf(ANSI_COLOR_YELLOW "------------------------------------------------\n\n" ANSI_COLOR_RESET);
 	}
-
-
-	printf(ANSI_COLOR_YELLOW "------------------------------------------------\n\n" ANSI_COLOR_RESET);
 }
 
 
@@ -589,7 +571,7 @@ void my_pthread_yield(){
 		thread_up_next->state 				= RUNNING;
     	timer.it_value.tv_usec 				= scheduler->currently_running->time_slice;	// "" (50 ms)
 
-		printf(ANSI_COLOR_GREEN "\tSwitching to Thread %ld...\n"ANSI_COLOR_RESET, thread_up_next->thread->threadID);
+		printf(ANSI_COLOR_GREEN "\t***Switching to Thread %ld...\n"ANSI_COLOR_RESET, thread_up_next->thread->threadID);
 	}else{
 	    timer.it_value.tv_usec 		= TIME_QUANTUM;	// wait 50ms if running queue is empty. 
 
@@ -750,30 +732,28 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 	//only do we actually set the lock to 1 once we call lock for an empty queue
 	thread_unit* temp; 
 	if(mutex->initialized == 0){
-		printf("Trying to lock an uninitialized mutex\n");
+		printf(ANSI_COLOR_CYAN "\tTrying to lock an uninitialized mutex\n" ANSI_COLOR_RESET);
 		return -1;
 	}
 	if(mutex->lock == 1 && mutex->owner == scheduler->currently_running->thread->threadID){
-		printf("You own the lock, why are you trying to lock it?\n");
+		printf(ANSI_COLOR_CYAN"\tYou own the lock, why are you trying to lock it?\n"ANSI_COLOR_RESET);
 		return -1;
 	}
 	if(mutex->lock == 1){
 		// Lock is currently in use & wait_queue is empty 
 		SYS_MODE = 1;
 		temp = mutex->waiting_queue;
-		printf("lock is in use, adding myself to the mutex waiting queue for lock %d\n",mutex->lock); 
+		printf(ANSI_COLOR_CYAN"\tLock is in use. Queuing to obtain lock %d.\n"ANSI_COLOR_RESET,mutex->id); 
 		if(temp == NULL){
 			temp = scheduler->currently_running;
 			mutex->waiting_queue = temp;
 
 			//mutex->waiting_queue = scheduler->currently_running;
-			printf("TID %ld has been added to the waiting queue.\n",scheduler->currently_running->thread->threadID);
+			printf(ANSI_COLOR_CYAN"\tTID %ld is the head of lock %d's waiting queue.\n"ANSI_COLOR_RESET,
+					scheduler->currently_running->thread->threadID, mutex->id);
 			scheduler->currently_running->state = WAITING;
-			_print_thread_unit(scheduler->currently_running);
 			my_pthread_yield();
 
-			printf("I have been revived.\n");
-			_print_thread_unit(scheduler->currently_running);
 			//when thread resumes, it should be getting the lock
 			mutex->lock = 1;
 			mutex->owner = scheduler->currently_running->thread->threadID;
@@ -788,7 +768,7 @@ int my_pthread_mutex_lock(my_pthread_mutex_t *mutex){
 		temp->mutex_next = scheduler->currently_running;
 		scheduler->currently_running->state = WAITING;
 		my_pthread_yield();
-		printf("\tI got the lock. TID %ld\n", scheduler->currently_running->thread->threadID);
+		printf(ANSI_COLOR_CYAN"\tI got the lock. TID %ld\n"ANSI_COLOR_RESET, scheduler->currently_running->thread->threadID);
 		mutex->lock = 1;
 		mutex->owner = scheduler->currently_running->thread->threadID;
 		return 0;
@@ -830,10 +810,10 @@ void resetTheTimer(){
 	thread_unit* 		thread_up_next = NULL;
 	thread_unit* 		prev = scheduler->currently_running;
 
-	printf("Resetting timer.\n");
+	printf(ANSI_COLOR_RED"\t\tResetting timer.\n"ANSI_COLOR_RESET);
 	/* Set timer */
     timer.it_value.tv_sec 		= 0;			// Time remaining until next expiration (sec)
-    timer.it_value.tv_usec 		= TIMER_MULTIPLE*TIME_QUANTUM;	// wait 50ms if running queue is empty. 
+    timer.it_value.tv_usec 		= TIMER_MULTIPLE*TIME_QUANTUM; 
     timer.it_interval.tv_sec 	= 0;			// Interval for periodic timer (sec)
     timer.it_interval.tv_usec 	= 0;			// "" (microseconds)
     setitimer(ITIMER_REAL, &timer, NULL);
@@ -910,8 +890,6 @@ int my_pthread_mutex_destroy(my_pthread_mutex_t *mutex){
 		resetTheTimer();
 		return 0;
 	}
-
-	//panic?
 	printf("panic!\n");
 	return 0;
 }
@@ -935,10 +913,7 @@ int my_pthread_mutex_trylock(my_pthread_mutex_t* mutex){
 *
 ************************************************************************************************************/
 
-/*
-	Function for testing
-		Loop: sleep for 0.5s, and then print.
-*/
+
 void f1(int x){
 
 	while(1){
@@ -968,7 +943,6 @@ void f2(int x){
 
     strcpy(a,"hello world");
     my_pthread_exit((void*)a);
-
 }
 
 void f3(my_pthread_t* thread){
@@ -982,97 +956,24 @@ void f3(my_pthread_t* thread){
 
 	printf("\tI got this: %s\n", (char*) receive);
 	my_pthread_exit(NULL);
-
 }
-
 
 
 void m1(my_pthread_t* thread){
 
 	my_pthread_mutex_lock(&mutex);
 
-	printf("TID %ld got the lock", thread->threadID);	
+	printf("\tI (TID %ld) got the lock", thread->threadID);	
 
 	test_counter+= thread->threadID;
 
-	printf("\tI changed the counter to: %i\n", test_counter);
+	printf("\tI changed the counter to:\t\t"ANSI_COLOR_RED" %i\n"ANSI_COLOR_RESET, test_counter);
 
-	//sleep(5);
-	//printf("Im awake.\n");
 	my_pthread_yield();
-
 	my_pthread_mutex_unlock(&mutex);
-
 	my_pthread_exit(NULL);
 }
 
-
-
-void _debugging_pthread_join(){
-
-	printf(ANSI_COLOR_RED "\n\nRunning pthread_join() debug test...\n\n" ANSI_COLOR_RESET);
-	
-	int NUM_PTHREADS = 5;
-
-
-	// my_pthread_t pthread_array[NUM_PTHREADS];
-	my_pthread_t* pthread_array = (my_pthread_t*)malloc(NUM_PTHREADS * sizeof(my_pthread_t));
-	my_pthread_attr_t* useless_attr;
-
-	int i;
-
-	for(i=0; i<NUM_PTHREADS;i++){
-
-		/* TID 2: Give last pthread functionptr to f2 (f2 terminates after a few seconds) */
-		if(i == 0){
-			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f2, (void*) i)){
-				printf(ANSI_COLOR_GREEN "Successfully created f2 pthread and enqueued. TID %ld\n" 
-					ANSI_COLOR_RESET, pthread_array[i].threadID);
-			}
-			continue;
-		}
-		
-		/* TID 3:  f3 (joins TID2) */
-		if(i == 1){
-			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f3, (void*) &pthread_array[0])){
-				printf(ANSI_COLOR_GREEN "Successfully created f3 pthread and enqueued. TID %ld\n" 
-					ANSI_COLOR_RESET, pthread_array[i].threadID);
-			}
-			continue;
-		}
-
-		/* TID 4: f3 (joins TID2) */
-		if(i == 2){
-			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f3, (void*) &pthread_array[0])){
-				printf(ANSI_COLOR_GREEN "Successfully created f3 pthread and enqueued. TID %ld\n" 
-					ANSI_COLOR_RESET, pthread_array[i].threadID);
-			}
-			continue;
-		}
-
-
-
-
-		if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f1, (void*) i)){
-			printf(ANSI_COLOR_GREEN "Successfully created f1 pthread and enqueued. TID %ld\n" 
-					ANSI_COLOR_RESET, pthread_array[i].threadID);
-		}
-	} 
-
-
-
-	printf("\nPrinting priority array 0 (Inside main).  Should include pthreads 2 to 6.\n");
-	_print_thread_list(scheduler->priority_array[0]);
-
-
-	/* Main joins on thread2 */
-	my_pthread_join(pthread_array[0], NULL);
-
-	while(1){
-		usleep(500000);
-		printf("\tExecuting main!\n");
-	}
-}
 
 
 
@@ -1094,22 +995,21 @@ void _debugging_pthread_mutex(){
 
 	for(i=0; i<NUM_PTHREADS;i++){
 
-		/* TID 2: grab */
+		/* TID all: lock mutex 1.  increment global counter.  unlock.  exit */
 		if(my_pthread_create(&pthread_array[i], useless_attr, (void*)m1, (void*) &pthread_array[i])){
-			printf(ANSI_COLOR_GREEN "Successfully created f2 pthread and enqueued. TID %ld\n" 
+			printf(ANSI_COLOR_GREEN "Successfully created m1 pthread and enqueued. TID %ld\n" 
 				ANSI_COLOR_RESET, pthread_array[i].threadID);
 		}
 
 		
-
 	} 
 
-	printf("\nPrinting priority array 0 (Inside main).  Should include pthreads 2 to 6.\n");
-	_print_thread_list(scheduler->priority_array[0]);
+	/* Main joins all pthreads */
+	// for(i=0; i<NUM_PTHREADS;i++){
+	// 	my_pthread_join(pthread_array[i], NULL);
+	// }	
+	
 
-
-	/* Main joins on thread2 */
-	my_pthread_join(pthread_array[0], NULL);
 
 	while(1){
 		usleep(500000);
@@ -1129,6 +1029,7 @@ int main(){
 	// _debugging_thread_unit_lib();
 	// _debugging_pthread_create();
 	// _debugging_pthread_yield();
+	// _debugging_pthread_exit();
 
 	_debugging_pthread_mutex();
 }
