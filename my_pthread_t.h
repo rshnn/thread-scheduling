@@ -33,9 +33,9 @@
 #define PAGE_SIZE 			4096					// Stack size defaults to page size
 
 
-#define PRIORITY_LEVELS 	10						// Number of priority levels
+#define PRIORITY_LEVELS 	50						// Number of priority levels
 #define TIME_QUANTUM 		50000 					// 50 ms = 50000 us  
-#define RUNNING_TIME 		50						// Experimental value 
+#define RUNNING_TIME 		100						// Experimental value 
 
 
 
