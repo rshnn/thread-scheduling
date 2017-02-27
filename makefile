@@ -30,4 +30,7 @@ rebuild:
 	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCE)
 
 pthread:
-	gcc -m32 -O0 -pthread -o pthread_test pthread_test.c 
+	gcc -pthread -o pthread_test pthread_test.c 
+
+pthread_debug:
+	gcc -m32 -O0 -pthread -g -o pthread_test pthread_test.c 

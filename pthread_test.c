@@ -11,7 +11,7 @@ pthread_mutex_t test_mutex1;
 pthread_mutex_t test_mutex2;
 
 
-void m1(pthread_t* thread){
+void m1(){
 
 	pthread_mutex_lock(&test_mutex1);
 
@@ -26,7 +26,7 @@ void m1(pthread_t* thread){
 	pthread_exit(NULL);
 }
 
-void m2(pthread_t* thread){
+void m2(){
 
 	pthread_mutex_lock(&test_mutex2);
 
@@ -69,7 +69,7 @@ void test_function(int num){
 	}
 
 	if(pthread_mutex_init(&test_mutex1, useless_mattr)<0){
-				printf("3");
+		printf("3");
 
 	}
 	
@@ -85,21 +85,25 @@ void test_function(int num){
 		// For evens
 		if(i%2 == 0){
 			/* TID all: lock mutex 1.  increment global counter.  unlock.  exit */
-			if(pthread_create(&pthread_array[i], useless_attr, (void*)m1, (void*) &pthread_array[i])<0){
+			if(pthread_create(&pthread_array[i], useless_attr, (void*)m1, (void*) NULL)<0){
 				// printf(ANSI_COLOR_GREEN "Successfully created m1 pthread and enqueued. TID %ld\n" 
 					// ANSI_COLOR_RESET, pthread_array[i].threadID);
-				printf("error\n");
+				printf("error m1 % i\n\n",i);
 				exit(-1);
+			}else{
+				printf("Success m1\n");
 			}
 		}else{
 		// For odds
 			/* TID all: lock mutex 2.  increment global counter.  unlock.  exit */
-			if(pthread_create(&pthread_array[i], useless_attr, (void*)m2, (void*) &pthread_array[i])<0){
+			if(pthread_create(&pthread_array[i], useless_attr, (void*)m2, (void*) NULL)<0){
 				// printf(ANSI_COLOR_GREEN "Successfully created m2 pthread and enqueued. TID %ld\n" 
 					// ANSI_COLOR_RESET, pthread_array[i].threadID);
+				printf("error m2 %i\n", i);
+				exit(-1);
+			}else{
+				printf("success m2\n");
 			}
-			printf("error\n");
-			exit(-1);
 		}
 
 
