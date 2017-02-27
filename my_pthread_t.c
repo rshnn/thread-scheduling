@@ -1062,7 +1062,7 @@ void test_function(int num){
 			ANSI_COLOR_RESET, test_counter1, test_counter2, num);
 	}
 
-	printf("running_time:\t\t%i\npriority_levels:\t%i\n", RUNNING_TIME, PRIORITY_LEVELS);
+	printf("\npriority_levels:\t%i\nrunning_time:\t\t%i\n", PRIORITY_LEVELS,  RUNNING_TIME);
 	printf("Total run time is: %ld microseconds.\n", total_time);
 	printf(ANSI_COLOR_GREEN"Safely ending.\n"ANSI_COLOR_RESET); 
 
