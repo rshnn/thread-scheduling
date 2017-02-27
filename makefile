@@ -23,8 +23,11 @@ debug:
 	make DEBUG=TRUE
 
 clean: 
-	rm -f $(TARGET)
+	rm -f $(TARGET) pthread_test
 
 rebuild:
 	rm -f $(TARGET)
 	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCE)
+
+pthread:
+	gcc -m32 -O0 -pthread -o pthread_test pthread_test.c 
