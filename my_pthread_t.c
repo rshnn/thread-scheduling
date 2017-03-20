@@ -907,6 +907,13 @@ int my_pthread_mutex_trylock(my_pthread_mutex_t* mutex){
 }
 	
 
+void* myallocate_proxy(int size, char* FILE, int LINE){
+
+	return myallocate(size, FILE, LINE, scheduler->currently_running->thread->threadID);
+
+}
+
+
 /************************************************************************************************************
 *
 *    DEBUGGING / TESTING
@@ -938,10 +945,13 @@ void f2(int x){
 	// }
 	printf("\tf2 completes execution.\n");
 
-	char* a;
-	a = (char*) malloc(sizeof(char));
+	int* a;
+	a = (int*) myallocate_proxy(sizeof(int), __FILE__, __LINE__);
+	*a = 5;
 
-    strcpy(a,"hello world");
+	printf("%i, %i\n", x, *a);
+
+
     my_pthread_exit((void*)a);
 }
 
@@ -1068,6 +1078,48 @@ void test_function(int num){
 
 }
 
+
+
+void myalloc_debug1(int num){
+
+	printf(ANSI_COLOR_RED "\n\nRunning pthread_join() debug test...\n\n" ANSI_COLOR_RESET);
+	
+	int NUM_PTHREADS = num;
+
+
+	// my_pthread_t pthread_array[NUM_PTHREADS];
+	my_pthread_t* pthread_array = (my_pthread_t*)malloc(NUM_PTHREADS * sizeof(my_pthread_t));
+	my_pthread_attr_t* useless_attr;
+
+	int i;
+
+	for(i=0; i<NUM_PTHREADS;i++){
+
+		/* TID 2: Give last pthread functionptr to f2 (f2 terminates after a few seconds) */
+			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)f2, (void*) i)){
+				printf(ANSI_COLOR_GREEN "Successfully created f2 pthread and enqueued. TID %ld\n" 
+					ANSI_COLOR_RESET, pthread_array[i].threadID);
+			}
+	
+
+
+	}
+	
+
+	/* Main joins all pthreads */
+	for(i=0; i<NUM_PTHREADS;i++){
+		my_pthread_join(pthread_array[i], NULL);
+	}	
+
+	// my_pthread_join(pthread_array[NUM_PTHREADS-1], NULL);
+	printf("\npriority_levels:\t%i\nrunning_time:\t\t%i\n", PRIORITY_LEVELS,  RUNNING_TIME);
+	printf(ANSI_COLOR_GREEN"Safely ending.\n"ANSI_COLOR_RESET); 
+
+
+}
+
+
+
 int main(int argc, char **argv){
 
 	 
@@ -1089,6 +1141,6 @@ int main(int argc, char **argv){
 	int how_many_threads_ya_want = atoi(argv[1]);
 	printf("%i\n", how_many_threads_ya_want);
 
-	test_function(how_many_threads_ya_want);
+	myalloc_debug1(how_many_threads_ya_want);
 }
 

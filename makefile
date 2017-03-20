@@ -7,7 +7,7 @@ CC = gcc
 CFLAGS 		= -m32 -O0
 DEBUGGER 	= -g
 
-SOURCE 		= my_pthread_t.h my_pthread_t.c thread_unit_lib.h thread_unit_lib.c 
+SOURCE 		= my_pthread_t.h my_pthread_t.c thread_unit_lib.h thread_unit_lib.c memory-manager.c memory-manager.h
 TARGET 		= my_pthread_t
 
 
@@ -23,7 +23,7 @@ debug:
 	make DEBUG=TRUE
 
 clean: 
-	rm -f $(TARGET) pthread_test
+	rm -f $(TARGET) swagmaster.swp 
 
 rebuild:
 	rm -f $(TARGET)

@@ -17,6 +17,7 @@
 #include <sys/time.h>
 #include <signal.h>
 #include <ucontext.h>
+#include "memory-manager.h"
 // #include <time.h>
 
 /* Set this to 1 to hide helper print statements */
@@ -39,23 +40,6 @@
 
 
 
-
-// #define mypthread_create	my_pthread_create
-// #define mypthread_exit		my_pthread_exit
-// #define mypthread_yield		my_pthread_yield
-// #define mypthread_join		my_pthread_join
-
-// #define mypthread_mutex_init	my_pthread_mutex_init
-// #define mypthread_mutex_lock	my_pthread_mutex_lock
-// #define mypthread_mutex_trylock	my_pthread_mutex_trylock
-// #define mypthread_mutex_unlock	my_pthread_mutex_unlock
-// #define mypthread_mutex_destroy	my_pthread_mutex_destroy
-
-// #define mypthread_t		my_pthread_t
-// #define mypthread_attr_t	my_pthread_attr_t
-
-// #define mypthread_mutex_t	my_pthread_mutex_t
-// #define mypthread_mutex_attr_t	my_pthread_mutex_attr_t
 
 
 /************************************************************************************************************
