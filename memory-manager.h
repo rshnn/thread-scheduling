@@ -172,7 +172,7 @@ void* mydellocate(void* ptr);
 PTEntry* getPTEntry(int tid, int page_num);
 PTEntry* swap(int tid, int page_num);
 PTEntry** get_all_dependents(int tid, int page_num);
-PTEntry** protectmemory(int tid, int* addr);
+PTEntry* protectmemory(int tid, int* addr);
 void blockmemory();
 
 #endif

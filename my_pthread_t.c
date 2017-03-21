@@ -169,10 +169,10 @@ int get_pthread_id() {
 }
 
 void sig_handler(int sig, siginfo_t* si, void* ptr){
-	int* addr = si->si_addr;
+	void* addr = si->si_addr;
 	int tid = get_pthread_id();
 
-	protectmemory(tid, addr);
+	unprotect_memory(tid, addr);
 }
 
 
@@ -605,7 +605,7 @@ void my_pthread_yield(){
 		maintenance_cycle(); 
 	}
 
-	blockmemory();
+	protect_memory();
 
 	if(!thread_list_isempty(scheduler->running)){
 

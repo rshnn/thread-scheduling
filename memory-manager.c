@@ -1197,7 +1197,8 @@ PTEntry* getPTEntry(int tid, int page_num){
 
 
 PTEntry* swap(int tid, int page_num) {
-	if(mprotect(memory[page_num], PAGE_SIZE, PROT_WRITE)){
+	int offset = page_num * PAGE_SIZE;
+	if(mprotect(memory[0]+offset, PAGE_SIZE, PROT_WRITE)){
 		perror("Could not \"mprotect(memory[page_num], PAGE_SIZE, PROT_WRITE)\"");
 		exit(errno);
 	}
@@ -1268,19 +1269,19 @@ PTEntry** get_all_dependents(int tid, int page_num) {
 }
 
 
-PTEntry** protectmemory(int tid, int* addr){
+PTEntry* unprotect_memory(int tid, void* addr){
 
-	int page_num = (addr - memory[0])/(PAGE_SIZE);
-	swap(tid, page_num);
+	int page_num = ((int*)addr - memory[0])/(PAGE_SIZE);
+	PTEntry* ptentry = swap(tid, page_num);
 
-	PTEntry** dependents = get_all_dependents(tid, page_num);
+	// PTEntry** dependents = get_all_dependents(tid, page_num);
 
-	return dependents;
+	return ptentry;
 }
 
 
-void blockmemory(){
-	if(mprotect(memory[0], MEMORY_SIZE, PROT_NONE)){
+void protect_memory(){
+	if(mprotect(memory[0], MEMORY_SIZE-2*PAGE_SIZE, PROT_NONE)){
 		perror("Could not: mprotect(memory[0], MEMORY_SIZE, PROT_NONE)");
 		exit(errno);
 	}
