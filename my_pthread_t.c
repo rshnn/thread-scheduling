@@ -164,6 +164,14 @@ void scheduler_sig_handler(){
 }
 
 
+void sig_handler(int sig, siginfo_t* si, void* ptr){
+	int* addr = si->si_addr;
+	int tid = get_pthread_id();
+
+	protectmemory(tid, addr);
+}
+
+
 void maintenance_cycle(){
 
 	int i;
@@ -450,6 +458,12 @@ void scheduler_init(){
 	// 	exit(EXIT_FAILURE);
 	// }
 
+	/* Direct SIGSEGV to scheduler_sig_handler */
+	struct sigaction s;
+	s.sa_flags = SA_SIGINFO|SA_RESETHAND;
+	s.sa_sigaction = sig_handler;
+	sigemptyset(&s.sa_mask);
+	sigaction(SIGSEGV, &s, 0);
 
 	/* Direct sig-alarms to scheduler_sig_handler */
 	signal(SIGALRM, &scheduler_sig_handler);
@@ -586,6 +600,8 @@ void my_pthread_yield(){
 		// End of running queue.  Run maint cycle.
 		maintenance_cycle(); 
 	}
+
+	blockmemory();
 
 	if(!thread_list_isempty(scheduler->running)){
 

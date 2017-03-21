@@ -220,6 +220,6 @@ void resetTheTimer();
 void scheduler_init();
 void scheduler_sig_handler();
 void priority_level_sort();
-
+void sig_handler();
 
 #endif
