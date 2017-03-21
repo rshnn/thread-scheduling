@@ -220,6 +220,8 @@ void resetTheTimer();
 void scheduler_init();
 void scheduler_sig_handler();
 void priority_level_sort();
+
+int get_pthread_id();
 void sig_handler();
 
 #endif

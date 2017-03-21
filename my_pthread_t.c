@@ -164,6 +164,10 @@ void scheduler_sig_handler(){
 }
 
 
+int get_pthread_id() {
+	return scheduler->currently_running->thread->threadID;
+}
+
 void sig_handler(int sig, siginfo_t* si, void* ptr){
 	int* addr = si->si_addr;
 	int tid = get_pthread_id();

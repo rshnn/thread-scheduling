@@ -1170,11 +1170,121 @@ void* mydellocate(void* ptr){
 	}
 	//TODO update largest available in the PTE or just let the myallocate do it for us
 	return NULL;
-	
-	
 }
 
 
+PTEntry* getPTEntry(int tid, int page_num){
+	if(page_num < 0){
+		return NULL;
+	}
+
+	ThrInfo* thread = thread_list[tid];
+	int i;
+	int j;
+
+	for(i=0; i<32; i++){
+		if(thread->SPTArray->array[i] == 1){
+			for(j=0; j<128; j++){
+				if(thread->blocks[i]->ptentries[j].mem_page_number == page_num){
+					return &(thread->blocks[i]->ptentries[j]);
+				}
+			}		
+		}
+	}
+
+	return NULL;
+}
+
+
+PTEntry* swap(int tid, int page_num) {
+	if(mprotect(memory[page_num], PAGE_SIZE, PROT_WRITE)){
+		perror("Could not \"mprotect(memory[page_num], PAGE_SIZE, PROT_WRITE)\"");
+		exit(errno);
+	}
+
+	PTEntry* myPTE = getPTEntry(tid, page_num);
+	if(book_keeper[page_num].TID != tid){
+		/* Get the PTEntry for this page */
+
+		/* I already have a set location in memory */
+		PTEntry* entry_to_evict = book_keeper[page_num].entry;
+		entry_to_evict->resident = 0;
+						
+		/*write guy back*/
+		swap_file = fopen("swagmaster.swp", "r+");
+		lseek(fileno(swap_file), ((entry_to_evict->swap_page_number)*PAGE_SIZE), SEEK_SET);
+		write(fileno(swap_file), memory[page_num], PAGE_SIZE);
+		close(fileno(swap_file));
+
+		/*write my page into memory[mymemspot]*/
+		swap_file = fopen("swagmaster.swp", "r");
+		lseek(fileno(swap_file), ((myPTE->swap_page_number)*PAGE_SIZE), SEEK_SET);
+		read(fileno(swap_file), memory[page_num], PAGE_SIZE);
+		close(fileno(swap_file));
+
+		/* updating book_keeper */
+		myPTE->resident = 1;
+		book_keeper[page_num].TID = tid;
+		book_keeper[page_num].entry = myPTE;
+	}
+	return myPTE;
+}
+
+
+PTEntry** get_all_dependents(int tid, int page_num) {
+
+	int orig_page_num = page_num;
+
+	int total_pages = 1;
+	int left_pages = 0;
+
+	PTEntry* page_entry = book_keeper[orig_page_num].entry;
+	while(page_entry->left_dependent == 1){
+		total_pages++;
+		left_pages++;
+
+		page_num--;
+		page_entry = swap(tid, page_num);
+	}
+
+	page_num = orig_page_num;
+	page_entry = book_keeper[orig_page_num].entry;
+	while(page_entry->right_dependent == 1){
+		total_pages++;
+
+		page_num++;
+		page_entry = swap(tid, page_num);
+	}
+
+	PTEntry** dependents = (PTEntry**)malloc(total_pages * sizeof(PTEntry*));
+
+	int i;
+	int first_page = orig_page_num - left_pages;
+	for(i=0; i<total_pages; i++){
+		dependents[i] = book_keeper[first_page+i].entry;
+	}
+
+	return dependents;
+}
+
+
+PTEntry** protectmemory(int tid, int* addr){
+
+	int page_num = (addr - memory[0])/(PAGE_SIZE);
+	swap(tid, page_num);
+
+	PTEntry** dependents = get_all_dependents(tid, page_num);
+
+	return dependents;
+}
+
+
+void blockmemory(){
+	if(mprotect(memory[0], MEMORY_SIZE, PROT_NONE)){
+		perror("Could not: mprotect(memory[0], MEMORY_SIZE, PROT_NONE)");
+		exit(errno);
+	}
+}
 
 
 int debug_1_simple_allocates_multiple_thread(){
