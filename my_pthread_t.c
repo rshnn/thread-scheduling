@@ -165,13 +165,17 @@ void scheduler_sig_handler(){
 
 
 int get_pthread_id() {
+	printf(ANSI_COLOR_YELLOW "\nWe are retrieving threadID\n" ANSI_COLOR_RESET);
 	return scheduler->currently_running->thread->threadID;
 }
 
 void sig_handler(int sig, siginfo_t* si, void* ptr){
+	printf(ANSI_COLOR_YELLOW "\nWe got a SIGSEGV signal\n" ANSI_COLOR_RESET);
+
 	void* addr = si->si_addr;
 	int tid = get_pthread_id();
 
+	printf(ANSI_COLOR_YELLOW "\nWe are entering unprotect_memory\n" ANSI_COLOR_RESET);
 	unprotect_memory(tid, addr);
 }
 

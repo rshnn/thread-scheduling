@@ -1270,6 +1270,7 @@ PTEntry** get_all_dependents(int tid, int page_num) {
 
 
 PTEntry* unprotect_memory(int tid, void* addr){
+	printf(ANSI_COLOR_YELLOW "\nWe are about to mprotect(PROT_WRITE) all memory\n" ANSI_COLOR_RESET);
 
 	int page_num = ((int*)addr - memory[0])/(PAGE_SIZE);
 	PTEntry* ptentry = swap(tid, page_num);
@@ -1281,6 +1282,8 @@ PTEntry* unprotect_memory(int tid, void* addr){
 
 
 void protect_memory(){
+	printf(ANSI_COLOR_YELLOW "\nWe are about to mprotect(PROT_NONE) all memory\n" ANSI_COLOR_RESET);
+
 	if(mprotect(memory[0], MEMORY_SIZE-2*PAGE_SIZE, PROT_NONE)){
 		perror("Could not: mprotect(memory[0], MEMORY_SIZE, PROT_NONE)");
 		exit(errno);
