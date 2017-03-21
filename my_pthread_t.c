@@ -246,7 +246,7 @@ void maintenance_cycle(){
 				thread_list_enqueue(scheduler->priority_array[temp->priority], temp);
 			}else{
 				
-				free(temp->ucontext);
+				// free(temp->ucontext);
 				// mydellocate(temp);  // Free the thread_unit in maint_cycle after ucontext 
 				continue;
 			}
@@ -332,7 +332,7 @@ void scheduler_init(){
 	SYS_MODE = 1;
 
 	/* Malloc space for scheduler */
-	if ((scheduler = (scheduler_t*)malloc(sizeof(scheduler_t))) == NULL){
+	if ((scheduler = (scheduler_t*)scheduler_malloc(sizeof(scheduler_t))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 	}
 
@@ -352,12 +352,12 @@ void scheduler_init(){
 		SETUP THREAD_UNITS FOR MAINTENANCE AND MAIN THREADS   
     **********************************************************************************/
 
-	if((main_thread_unit = (thread_unit*)malloc(sizeof(thread_unit))) == NULL){
+	if((main_thread_unit = (thread_unit*)scheduler_malloc(sizeof(thread_unit))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 		exit(-1);		
 	}
 
-	if((maintenance_thread_unit = (thread_unit*)malloc(sizeof(thread_unit))) == NULL){
+	if((maintenance_thread_unit = (thread_unit*)scheduler_malloc(sizeof(thread_unit))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 		exit(-1);		
 	}
@@ -370,7 +370,7 @@ void scheduler_init(){
 	main_thread_unit->next = NULL;
 	main_thread_unit->priority = 0;
 
-	main_thread_unit->thread = (my_pthread_t*)malloc(sizeof(my_pthread_t));
+	main_thread_unit->thread = (my_pthread_t*)scheduler_malloc(sizeof(my_pthread_t));
 	main_thread_unit->thread->threadID = 1;
 	main_thread_unit->thread->priority = 0;
 	main_thread_unit->thread->thread_unit = main_thread_unit;
@@ -380,7 +380,7 @@ void scheduler_init(){
 	/* MAIN UCONTEXT SETUP */
 
 	/* Attempt to malloc space for main_ucontext */
-	if ((main_thread_unit->ucontext = (ucontext_t*)malloc(sizeof(ucontext_t))) == NULL){
+	if ((main_thread_unit->ucontext = (ucontext_t*)scheduler_malloc(sizeof(ucontext_t))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 		exit(-1);
 	}
@@ -402,7 +402,7 @@ void scheduler_init(){
 	/* MAINTENANCE UCONTEXT SETUP */
 
 	/* Attempt to malloc space for maintenance_ucontext */
-	if ((maintenance_thread_unit->ucontext = (ucontext_t*)malloc(sizeof(ucontext_t))) == NULL){
+	if ((maintenance_thread_unit->ucontext = (ucontext_t*)scheduler_malloc(sizeof(ucontext_t))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 		exit(-1);
 	}
@@ -935,7 +935,7 @@ void f1(int x){
 void f2(int x){
 
 
-	//printf("\tExecuting f2:\tArg is %i.\n", x);
+	// printf("\tExecuting f2:\tArg is %i.\n", x);
 
 	sleep(4);
 	
@@ -949,7 +949,7 @@ void f2(int x){
 	a = (int*) myallocate_proxy(sizeof(int), __FILE__, __LINE__);
 	*a = 5;
 
-	printf("%i, %i\n", x, *a);
+	printf("\t\tTID:%i\tMy memory-manager pointer: %p\tvalue:%i\n", x, a, *a);
 
 
     my_pthread_exit((void*)a);
@@ -1001,84 +1001,6 @@ void m2(my_pthread_t* thread){
 
 
 
-/*
-	
-	
-*/
-void test_function(int num){
-
-  	struct timeval start, end;
-  	gettimeofday(&start, NULL);
-
-
-	printf(ANSI_COLOR_RED "\n\nRunning pthread_join() debug test...\n\n" ANSI_COLOR_RESET);
-	
-	int NUM_PTHREADS = num;
-
-
-	// my_pthread_t pthread_array[NUM_PTHREADS];
-	my_pthread_t* pthread_array = (my_pthread_t*)malloc(NUM_PTHREADS * sizeof(my_pthread_t));
-	my_pthread_attr_t* useless_attr;
-	my_pthread_mutexattr_t* useless_mattr;
-
-	my_pthread_mutex_init(&test_mutex1, useless_mattr);
-	my_pthread_mutex_init(&test_mutex2, useless_mattr);
-
-	int i;
-
-	for(i=0; i<NUM_PTHREADS;i++){
-
-		// For evens
-		if(i%2 == 0){
-			/* TID all: lock mutex 1.  increment global counter.  unlock.  exit */
-			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)m1, (void*) &pthread_array[i])){
-				printf(ANSI_COLOR_GREEN "Successfully created m1 pthread and enqueued. TID %ld\n" 
-					ANSI_COLOR_RESET, pthread_array[i].threadID);
-			}
-		}else{
-		// For odds
-			/* TID all: lock mutex 2.  increment global counter.  unlock.  exit */
-			if(my_pthread_create(&pthread_array[i], useless_attr, (void*)m2, (void*) &pthread_array[i])){
-				printf(ANSI_COLOR_GREEN "Successfully created m2 pthread and enqueued. TID %ld\n" 
-					ANSI_COLOR_RESET, pthread_array[i].threadID);
-			}
-		}
-
-
-		
-	} 
-
-
-
-	/* Main joins all pthreads */
-	for(i=0; i<NUM_PTHREADS;i++){
-		my_pthread_join(pthread_array[i], NULL);
-	}	
-	// my_pthread_join(pthread_array[NUM_PTHREADS-1], NULL);
-	
-
-
-
-  	gettimeofday(&end, NULL);
-
-  	long int total_time = (end.tv_sec*1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec);
-
-
-	
-	if((test_counter1 + test_counter2) == num){
-		printf(ANSI_COLOR_GREEN"\nSuccessful run with %i threads.\n"ANSI_COLOR_RESET, num);
-	}else{
-		printf(ANSI_COLOR_RED"\nFailure. Counters are 1: %i and 2: %i but expected %i\n"
-			ANSI_COLOR_RESET, test_counter1, test_counter2, num);
-	}
-
-	printf("\npriority_levels:\t%i\nrunning_time:\t\t%i\n", PRIORITY_LEVELS,  RUNNING_TIME);
-	printf("Total run time is: %ld microseconds.\n", total_time);
-	printf(ANSI_COLOR_GREEN"Safely ending.\n"ANSI_COLOR_RESET); 
-
-}
-
-
 
 void myalloc_debug1(int num){
 
@@ -1088,7 +1010,7 @@ void myalloc_debug1(int num){
 
 
 	// my_pthread_t pthread_array[NUM_PTHREADS];
-	my_pthread_t* pthread_array = (my_pthread_t*)malloc(NUM_PTHREADS * sizeof(my_pthread_t));
+	my_pthread_t* pthread_array = (my_pthread_t*)myallocate(NUM_PTHREADS * sizeof(my_pthread_t), __FILE__, __LINE__, 1);
 	my_pthread_attr_t* useless_attr;
 
 	int i;
@@ -1136,6 +1058,12 @@ int main(int argc, char **argv){
 	scheduler_init();
 	initMemoryManager();
 
+	printf("\nSize of:\n");
+	printf("\tThreadUnit:\t%i\n",sizeof(thread_unit));
+	printf("\tThreadUnitList:\t%i\n",sizeof(thread_unit_list));
+	printf("\tScheduler:\t%i\n", sizeof(scheduler_t));
+
+
 	if(argc != 2){
 		printf(ANSI_COLOR_RED"Usage: ./my_pthread_t [NUM_THREADS]\n"ANSI_COLOR_RESET);
 		exit(-1);
@@ -1145,5 +1073,10 @@ int main(int argc, char **argv){
 	printf("%i\n", how_many_threads_ya_want);
 
 	myalloc_debug1(how_many_threads_ya_want);
+
+
+
+
+
 }
 

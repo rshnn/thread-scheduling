@@ -24,7 +24,7 @@ thread_unit* thread_unit_init(my_pthread_t* pthread){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 	}
 
-	if ((tu->ucontext = (ucontext_t*) malloc(sizeof(ucontext_t))) == NULL){
+	if ((tu->ucontext = (ucontext_t*) scheduler_malloc(sizeof(ucontext_t))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 	}
 
@@ -57,7 +57,7 @@ thread_unit_list* thread_list_init(){
 
 	thread_unit_list* thread_list;
 
-	if ((thread_list = (thread_unit_list*)malloc(sizeof(thread_unit_list))) == NULL){
+	if ((thread_list = (thread_unit_list*)scheduler_malloc(sizeof(thread_unit_list))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 	}
 

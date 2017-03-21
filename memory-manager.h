@@ -164,7 +164,7 @@ typedef struct SwapUnit_{
 *
 ************************************************************************************************************/
 
-void* scheduler_malloc(int size,int condition);
+void* scheduler_malloc(int size);
 void* myallocate(int size, char* FILE, int LINE, int tid);
 void* mydellocate(void* ptr);
 

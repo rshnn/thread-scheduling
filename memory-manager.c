@@ -684,107 +684,60 @@ void* multiplePageRequest(int size, char* FILE, int LINE, int tid){
 ****************************************************************************
 ****************************************************************************/
 
-void* scheduler_malloc(int size, int condition){
+void* scheduler_malloc(int size){
 	void* da_pointer;
 	int temp_entry;
 	int* currME;
 	int isfree;
 	int seg_size;
-	int offset = PAGE_SIZE*2;
+	int offset = PAGE_SIZE*10;
 	if(initialized == 0)
 		initMemoryManager();
-	//need to know how many threads we currently have because we wont have space for MAX_THREADS+1-numPages
-	//dont have largest available to know how our memblock currently looks
-	/*if(condition == 1){//this is to allocate ucontext or scheduler struct stuff into pages Max-2
-		currME = memory[PAGES_IN_MEMORY-2];
-		if(book_keeper[PAGES_IN_MEMORY-2].isfree == 1){//set it up
-			book_keeper[PAGES_IN_MEMORY-2].isfree = 0;
-			int temp = initMemEntry(1, 0, 0, size);
-			memcpy(memory[PAGES_IN_MEMORY-2], &temp, sizeof(int));
-			int next_ME = initMemEntry(1, 1, 0, PAGE_SIZE-4-size);
-			memcpy((memory[PAGES_IN_MEMORY-2]+0x4+size), &next_ME, sizeof(int));
-			return currME+0x4;
-		}else{ //set up is done just look for a free mementry and chop us as needed
-			while(offset >= -4){//change to offset?
-				seg_size = getRequestSizeME(*currME);
-				isfree = getIsFreeBitME(*currME);
-				if(isfree && seg_size >= size){
-					//found it
-					if(seg_size-size < 4){
-						// Not adding a new memEntry.  You get the block, guy.
-						temp_entry = initMemEntry(1, 0, 0, seg_size);
-						memcpy(currME, &temp_entry, sizeof(int));	
-						return da_pointer = currME+4;
-					}else{
-						// chopchop
-						temp_entry = initMemEntry(1, 0, 0, size);
-						memcpy(currME, &temp_entry, sizeof(int));	
-						temp_entry = initMemEntry(1, 1, 0, seg_size-size-4);
-						//isfree = getIsFreeBitME(temp_entry); //this was used for testing right?
-						// printf("isfree: %i\n", isfree);	
-						// _printMemEntry(temp_entry);
-						// printf("Lookatme!\t"); _printMemEntry(temp_entry);
-						memcpy(currME+4+size, &temp_entry, sizeof(int));		
-						da_pointer = currME+4;
-						return da_pointer;
-					}
+	
+	currME = memory[PAGES_IN_MEMORY-10];
+	if(book_keeper[PAGES_IN_MEMORY-10].isfree == 1){//set it up (just in case)
+		book_keeper[PAGES_IN_MEMORY-10].isfree = 0;
+		int temp = initMemEntry(1, 0, 0, size);
+		memcpy(memory[PAGES_IN_MEMORY-2], &temp, sizeof(int));
+		int next_ME = initMemEntry(1, 1, 0, PAGE_SIZE-4-size);
+		memcpy(((memory[PAGES_IN_MEMORY-10])+0x4+size), &next_ME, sizeof(int));
+		memcpy((memory[PAGES_IN_MEMORY-2]+0x4+size), &next_ME, sizeof(int));
+		return currME+0x4;
+	}else{ //set up is done just look for a free mementry and chop us as needed
+		while(offset >= -4){//change to offset?
+			seg_size = getRequestSizeME(*currME);
+			isfree = getIsFreeBitME(*currME);
+			if(isfree && seg_size >= size){
+				//found it
+				if(seg_size-size < 4){
+					// Not adding a new memEntry.  You get the block, guy.
+					temp_entry = initMemEntry(1, 0, 0, seg_size);
+					memcpy(currME, &temp_entry, sizeof(int));	
+					return da_pointer = currME+4;
+				}else{
+					// chopchop
+					temp_entry = initMemEntry(1, 0, 0, size);
+					memcpy(currME, &temp_entry, sizeof(int));	
+					temp_entry = initMemEntry(1, 1, 0, seg_size-size-4);
+					//isfree = getIsFreeBitME(temp_entry); //this was used for testing right?
+					// printf("isfree: %i\n", isfree);	
+					// _printMemEntry(temp_entry);
+					// printf("Lookatme!\t"); _printMemEntry(temp_entry);
+					memcpy(currME+4+size, &temp_entry, sizeof(int));		
+					da_pointer = currME+4;
+					return da_pointer;
 				}
-				currME = currME+seg_size+0x4;
-				offset = offset - seg_size -4;
 			}
-			// must have found no space, hit max threads?
-			printf("panic\n");
-			return NULL;
-		}	
-	}*/
-	//if(condition == 2){//this is to allocate thread unit stuff into page Max-1
-		currME = memory[PAGES_IN_MEMORY-1];
-		if(book_keeper[PAGES_IN_MEMORY-1].isfree == 1){//set it up (just in case)
-			book_keeper[PAGES_IN_MEMORY-1].isfree = 0;
-			int temp = initMemEntry(1, 0, 0, size);
-			memcpy(memory[PAGES_IN_MEMORY-1], &temp, sizeof(int));
-			int next_ME = initMemEntry(1, 1, 0, PAGE_SIZE-4-size);
-			memcpy(((memory[PAGES_IN_MEMORY-1])+0x4+size), &next_ME, sizeof(int));
-			memcpy((memory[PAGES_IN_MEMORY-1]+0x4+size), &next_ME, sizeof(int));
-			return currME+0x4;
-		}else{ //set up is done just look for a free mementry and chop us as needed
-			while(offset >= -4){//change to offset?
-				seg_size = getRequestSizeME(*currME);
-				isfree = getIsFreeBitME(*currME);
-				if(isfree && seg_size >= size){
-					//found it
-					if(seg_size-size < 4){
-						// Not adding a new memEntry.  You get the block, guy.
-						temp_entry = initMemEntry(1, 0, 0, seg_size);
-						memcpy(currME, &temp_entry, sizeof(int));	
-						return da_pointer = currME+4;
-					}else{
-						// chopchop
-						temp_entry = initMemEntry(1, 0, 0, size);
-						memcpy(currME, &temp_entry, sizeof(int));	
-						temp_entry = initMemEntry(1, 1, 0, seg_size-size-4);
-						//isfree = getIsFreeBitME(temp_entry); //this was used for testing right?
-						// printf("isfree: %i\n", isfree);	
-						// _printMemEntry(temp_entry);
-						// printf("Lookatme!\t"); _printMemEntry(temp_entry);
-						memcpy(currME+4+size, &temp_entry, sizeof(int));		
-						da_pointer = currME+4;
-						return da_pointer;
-					}
-				}
-				currME = currME+seg_size+0x4;
-				offset = offset - seg_size -4;
-			}
-			// must have found no space, hit max threads?
-			printf("panic\n");
-			return NULL;
+			currME = currME+seg_size+0x4;
+			offset = offset - seg_size -4;
 		}
-	//}
+		// must have found no space, hit max threads?
+		printf(ANSI_COLOR_RED"\nPanic.  Out of reserve memory for scheduler.\n"ANSI_COLOR_RESET);
+		return NULL;
+	}
 	return NULL;	
 	
 }
-
-
 void* myallocate(int size, char* FILE, int LINE, int tid){
 
 
@@ -1267,18 +1220,18 @@ int debug_2_multiple_page_request(){
 	int*b;
 	int*c;
 
-	printf("~~~~~~~~TID=3~~~~~~~~\n");
-	//myallocate(PAGE_SIZE*4, " ", 3, 3);
-	printf("~~~~~~~~TID=4~~~~~~~~\n");
-	a = (int*) scheduler_malloc(4,2);
-	*a = 38;
-	printf(ANSI_COLOR_RED"a:%i\n"ANSI_COLOR_RESET, *a);
-	b = (int*) scheduler_malloc(4,2);
-	*b = 5;
-	printf(ANSI_COLOR_RED"a:%i, b:%i\n"ANSI_COLOR_RESET, *a,*b);
-	c = (int*) scheduler_malloc(4,2);
-	*c = 5;
-	printf(ANSI_COLOR_RED"a:%i, b:%i, c:%i\n"ANSI_COLOR_RESET, *a,*b,*c);
+	// printf("~~~~~~~~TID=3~~~~~~~~\n");
+	// //myallocate(PAGE_SIZE*4, " ", 3, 3);
+	// printf("~~~~~~~~TID=4~~~~~~~~\n");
+	// a = (int*) scheduler_malloc(4,2);
+	// *a = 38;
+	// printf(ANSI_COLOR_RED"a:%i\n"ANSI_COLOR_RESET, *a);
+	// b = (int*) scheduler_malloc(4,2);
+	// *b = 5;
+	// printf(ANSI_COLOR_RED"a:%i, b:%i\n"ANSI_COLOR_RESET, *a,*b);
+	// c = (int*) scheduler_malloc(4,2);
+	// *c = 5;
+	// printf(ANSI_COLOR_RED"a:%i, b:%i, c:%i\n"ANSI_COLOR_RESET, *a,*b,*c);
 	
 	return 0;
 }
