@@ -20,7 +20,7 @@ thread_unit* thread_unit_init(my_pthread_t* pthread){
 
 	thread_unit* tu;
 
-	if ((tu = (thread_unit *)malloc(sizeof(thread_unit))) == NULL){
+	if ((tu = (thread_unit *)myallocate(sizeof(thread_unit), __FILE__, __LINE__, 0)) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 	}
 

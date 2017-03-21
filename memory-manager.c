@@ -168,6 +168,9 @@ int buildThrInfo(int tid){
 */
 void initMemoryManager(){
 
+	if(initialized == 1)
+		return;
+
 
 	int i,j;
 	PAGE_SIZE 		= sysconf(_SC_PAGE_SIZE);
@@ -785,6 +788,7 @@ void* scheduler_malloc(int size, int condition){
 void* myallocate(int size, char* FILE, int LINE, int tid){
 
 
+
 	if(size > PAGE_SIZE-4){
 		return multiplePageRequest(size, FILE, LINE, tid);
 	}
@@ -855,7 +859,7 @@ void* myallocate(int size, char* FILE, int LINE, int tid){
 	PTBlock* myblock 			= NULL; 		// Block with free space in it
 		// Case 1: First malloc by this thread.  Generate new PTBlock.  Update SupPTA
 	if(first_allocate){
-		printf("first!\n");
+		// printf("first!\n");
 		addPTBlock(tid);
 		myblock = thread->blocks[0];
 	}else{
@@ -902,24 +906,10 @@ void* myallocate(int size, char* FILE, int LINE, int tid){
 	// I've got the pagenumber that this thread can use now (mypagenumber)
 	PTEntry* myPTE = &(thread->blocks[myblock->blockID]->ptentries[mypagenumber]);
 
-	printf("POINTIES: %i, %p\n", thread->TID, *(thread->blocks));
+	// printf("POINTIES: %i, %p\n", thread->TID, *(thread->blocks));
 
 	/********************************************/
 	/* (3)	Get my page into some spot in memory  */
-		// Do i have an assigned spot in memory yet? (mem_page== 2048)
-		// 	Yes: Am i resident in this assigned spot? (book_keeper)
-		// 		Yes: Continue;
-		// 		No:  Move that guy into swap_bank 	(check his PTE)	
-
-
-		// 	No: Look for a free spot in memory. (book_keeper)
-				
-		// 		If all full, look to evict.  	
-		// 			Is there enough swap_space?
-		// 				Failure return NULL.  Swap full
-		// 			Find the first MemBook that isnt mine
-		// 				get it out of here!
-		// 				My spot.  (save index to PTE->mem_page_number)
 
 
 
@@ -965,7 +955,7 @@ void* myallocate(int size, char* FILE, int LINE, int tid){
 		}
 		if(foundspot == 0){//kick someone out of memory
 			for(i = 0; i < VALID_PAGES_MEM;i++){
-				if(book_keeper[i].TID != tid){//kick out the ith index
+				if(book_keeper[i].TID != tid  && book_keeper[i].TID != 0){//kick out the ith index
 					//TODO//
 					PTEntry* guy = book_keeper[i].entry;
 					int guys_swap_spot = guy->swap_page_number;

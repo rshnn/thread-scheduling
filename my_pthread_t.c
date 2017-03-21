@@ -247,7 +247,7 @@ void maintenance_cycle(){
 			}else{
 				
 				free(temp->ucontext);
-				free(temp);  // Free the thread_unit in maint_cycle after ucontext 
+				// mydellocate(temp);  // Free the thread_unit in maint_cycle after ucontext 
 				continue;
 			}
 
@@ -937,7 +937,7 @@ void f2(int x){
 
 	//printf("\tExecuting f2:\tArg is %i.\n", x);
 
-	sleep(10);
+	sleep(4);
 	
 	// while(1){
 	// 	usleep(100000);
@@ -1132,6 +1132,9 @@ int main(int argc, char **argv){
 	// _debugging_pthread_yield();
 	// _debugging_pthread_exit();
 	// _debugging_pthread_mutex(how_many_threads_ya_want);
+
+	scheduler_init();
+	initMemoryManager();
 
 	if(argc != 2){
 		printf(ANSI_COLOR_RED"Usage: ./my_pthread_t [NUM_THREADS]\n"ANSI_COLOR_RESET);
