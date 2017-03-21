@@ -695,13 +695,13 @@ void* scheduler_malloc(int size){
 	if(initialized == 0)
 		initMemoryManager();
 
-	if(size == 16)
-		printf("The value of is free %i on thread_unit iteration %i\n", \
-			book_keeper[PAGES_IN_MEMORY-10].isfree,iteration);
+	// if(size == 16)
+	// 	printf("The value of is free %i on thread_unit iteration %i\n", \
+	// 		book_keeper[PAGES_IN_MEMORY-10].isfree,iteration);
 
-	if(size == 348)
-		printf("The value of is free %i on a ucontext iteration %i\n", \
-			book_keeper[PAGES_IN_MEMORY-10].isfree,iteration);
+	// if(size == 348)
+	// 	printf("The value of is free %i on a ucontext iteration %i\n", \
+	// 		book_keeper[PAGES_IN_MEMORY-10].isfree,iteration);
 
 
 	currME = memory[PAGES_IN_MEMORY-2];
@@ -709,7 +709,7 @@ void* scheduler_malloc(int size){
 		book_keeper[PAGES_IN_MEMORY-2].isfree = 0;
 		int temp = initMemEntry(1, 0, 0, size);
 		memcpy(memory[PAGES_IN_MEMORY-2], &temp, sizeof(int));
-		int next_ME = initMemEntry(1, 1, 0, PAGE_SIZE-4-size);
+		int next_ME = initMemEntry(1, 1, 0, PAGE_SIZE*2-4-size);
 		memcpy(((memory[PAGES_IN_MEMORY-2])+0x4+size), &next_ME, sizeof(int));
 		memcpy((memory[PAGES_IN_MEMORY-2]+0x4+size), &next_ME, sizeof(int));
 		return currME+0x4;
@@ -1197,6 +1197,7 @@ PTEntry* getPTEntry(int tid, int page_num){
 
 
 PTEntry* swap(int tid, int page_num) {
+	printf("Inside swap\n");
 	int offset = page_num * PAGE_SIZE;
 	if(mprotect(memory[0]+offset, PAGE_SIZE, PROT_WRITE)){
 		perror("Could not \"mprotect(memory[page_num], PAGE_SIZE, PROT_WRITE)\"");
@@ -1204,7 +1205,7 @@ PTEntry* swap(int tid, int page_num) {
 	}
 
 	PTEntry* myPTE = getPTEntry(tid, page_num);
-	if(book_keeper[page_num].TID != tid){
+	if((book_keeper[page_num].TID != tid)){
 		/* Get the PTEntry for this page */
 
 		/* I already have a set location in memory */
@@ -1284,10 +1285,44 @@ PTEntry* unprotect_memory(int tid, void* addr){
 void protect_memory(){
 	printf(ANSI_COLOR_YELLOW "\nWe are about to mprotect(PROT_NONE) all memory\n" ANSI_COLOR_RESET);
 
-	if(mprotect(memory[0], MEMORY_SIZE-2*PAGE_SIZE, PROT_NONE)){
+	if(mprotect(memory[0], VALID_PAGES_MEM*PAGE_SIZE, PROT_NONE)){
 		perror("Could not: mprotect(memory[0], MEMORY_SIZE, PROT_NONE)");
 		exit(errno);
 	}
+
+	printf("Protected all of memory.  Unprotecting TID 0.\n");
+
+	// int i;
+	// for(i=0; i<VALID_PAGES_MEM; i++) {
+	//     if(book_keeper[i].TID != 0) {
+	//         int offset = i*PAGE_SIZE;
+	//     	if(mprotect(memory[0]+offset, PAGE_SIZE, PROT_NONE)){
+	//     		perror("Could not: mprotect(memory[0], MEMORY_SIZE, PROT_NONE)");
+	//     		exit(errno);
+	//     	}
+	//     }
+	// }
+
+
+
+
+	int i;
+	for(i=0; i<VALID_PAGES_MEM; i++) {
+    	// printf("Entered for l\n");
+	    if(book_keeper[i].TID == 0) {
+	    	printf("bookkeeper tid\n");
+	        int offset = i*PAGE_SIZE;
+	    	if(mprotect(memory[0]+offset, PAGE_SIZE, PROT_WRITE)){
+	    		perror("Could not: mprotect(memory[0]+offset, MEMORY_SIZE, PROT_WRITE)");
+	    		exit(errno);
+	    	}else{
+		    	printf("Successfully unprotected\n");
+	    	}
+	    }
+	}
+
+
+
 }
 
 

@@ -347,6 +347,8 @@ void scheduler_init(){
 	int i;
 	SYS_MODE = 1;
 
+	initMemoryManager();
+
 	/* Malloc space for scheduler */
 	if ((scheduler = (scheduler_t*)scheduler_malloc(sizeof(scheduler_t))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
@@ -386,7 +388,7 @@ void scheduler_init(){
 	main_thread_unit->next = NULL;
 	main_thread_unit->priority = 0;
 
-	main_thread_unit->thread = (my_pthread_t*)myallocate(sizeof(my_pthread_t), __FILE__, __LINE__, 1);
+	main_thread_unit->thread = (my_pthread_t*)myallocate(sizeof(my_pthread_t), __FILE__, __LINE__, 0);
 	main_thread_unit->thread->threadID = 1;
 	main_thread_unit->thread->priority = 0;
 	main_thread_unit->thread->thread_unit = main_thread_unit;
@@ -611,6 +613,9 @@ void my_pthread_yield(){
 
 	protect_memory();
 
+
+
+
 	if(!thread_list_isempty(scheduler->running)){
 
 		thread_up_next						= scheduler->running->iter;
@@ -619,7 +624,7 @@ void my_pthread_yield(){
 		thread_up_next->state 				= RUNNING;
     	timer.it_value.tv_usec 				= scheduler->currently_running->time_slice;	// "" (50 ms)
 
-		printf(ANSI_COLOR_GREEN "\t***Switching to Thread %ld...\n"ANSI_COLOR_RESET, thread_up_next->thread->threadID);
+		// printf(ANSI_COLOR_GREEN "\t***Switching to Thread %ld...\n"ANSI_COLOR_RESET, thread_up_next->thread->threadID);
 	}else{
 	    timer.it_value.tv_usec 		= TIME_QUANTUM;	// wait 50ms if running queue is empty. 
 
