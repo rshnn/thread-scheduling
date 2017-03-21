@@ -13,7 +13,7 @@ SuperPTArray*	SPTA_library;		// Array of SPA's. One for each thread (index = TID
 ThrInfo** 		thread_list;		// Array of ThrInfo ptrs for all threads 
 SwapUnit* 		swap_bank; 			// Array of SwapUnit structs.  Book keeping for swap file
 
-int 	MEMORY_SIZE 	= 2<<20;	// 8MB  (8388608 bytes)
+int 	MEMORY_SIZE 	= 2<<22;	// 8MB  (8388608 bytes)
 int 	SWAP_SIZE		= 2<<23; 	// 16MB (16777216 bytes)
 int 	PAGE_SIZE 		= 0;		// Dynamically populated in init(). ~4096 bytes
 int 	PAGES_IN_MEMORY = 0;		// Dynamically populated in init(). 2048 for PS=4096
@@ -1291,18 +1291,6 @@ void protect_memory(){
 	}
 
 	printf("Protected all of memory.  Unprotecting TID 0.\n");
-
-	// int i;
-	// for(i=0; i<VALID_PAGES_MEM; i++) {
-	//     if(book_keeper[i].TID != 0) {
-	//         int offset = i*PAGE_SIZE;
-	//     	if(mprotect(memory[0]+offset, PAGE_SIZE, PROT_NONE)){
-	//     		perror("Could not: mprotect(memory[0], MEMORY_SIZE, PROT_NONE)");
-	//     		exit(errno);
-	//     	}
-	//     }
-	// }
-
 
 
 

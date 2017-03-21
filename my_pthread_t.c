@@ -469,11 +469,11 @@ void scheduler_init(){
 	// }
 
 	/* Direct SIGSEGV to scheduler_sig_handler */
-	struct sigaction s;
-	s.sa_flags = SA_SIGINFO|SA_RESETHAND;
-	s.sa_sigaction = sig_handler;
-	sigemptyset(&s.sa_mask);
-	sigaction(SIGSEGV, &s, 0);
+	// struct sigaction s;
+	// s.sa_flags = SA_SIGINFO|SA_RESETHAND;
+	// s.sa_sigaction = sig_handler;
+	// sigemptyset(&s.sa_mask);
+	// sigaction(SIGSEGV, &s, 0);
 
 	/* Direct sig-alarms to scheduler_sig_handler */
 	signal(SIGALRM, &scheduler_sig_handler);
@@ -611,7 +611,7 @@ void my_pthread_yield(){
 		maintenance_cycle(); 
 	}
 
-	protect_memory();
+	// protect_memory();
 
 
 
