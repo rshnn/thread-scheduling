@@ -690,17 +690,17 @@ void* scheduler_malloc(int size){
 	int* currME;
 	int isfree;
 	int seg_size;
-	int offset = PAGE_SIZE*10;
+	int offset = PAGE_SIZE*2;
 	if(initialized == 0)
 		initMemoryManager();
 	
-	currME = memory[PAGES_IN_MEMORY-10];
-	if(book_keeper[PAGES_IN_MEMORY-10].isfree == 1){//set it up (just in case)
-		book_keeper[PAGES_IN_MEMORY-10].isfree = 0;
+	currME = memory[PAGES_IN_MEMORY-2];
+	if(book_keeper[PAGES_IN_MEMORY-2].isfree == 1){//set it up (just in case)
+		book_keeper[PAGES_IN_MEMORY-2].isfree = 0;
 		int temp = initMemEntry(1, 0, 0, size);
 		memcpy(memory[PAGES_IN_MEMORY-2], &temp, sizeof(int));
 		int next_ME = initMemEntry(1, 1, 0, PAGE_SIZE-4-size);
-		memcpy(((memory[PAGES_IN_MEMORY-10])+0x4+size), &next_ME, sizeof(int));
+		memcpy(((memory[PAGES_IN_MEMORY-2])+0x4+size), &next_ME, sizeof(int));
 		memcpy((memory[PAGES_IN_MEMORY-2]+0x4+size), &next_ME, sizeof(int));
 		return currME+0x4;
 	}else{ //set up is done just look for a free mementry and chop us as needed
@@ -730,14 +730,15 @@ void* scheduler_malloc(int size){
 			}
 			currME = currME+seg_size+0x4;
 			offset = offset - seg_size -4;
-		}
+		} 
 		// must have found no space, hit max threads?
-		printf(ANSI_COLOR_RED"\nPanic.  Out of reserve memory for scheduler.\n"ANSI_COLOR_RESET);
+		printf(ANSI_COLOR_RED"Panic. Out of reserve memory for scheduler.\n"ANSI_COLOR_RESET);
 		return NULL;
 	}
 	return NULL;	
 	
 }
+
 void* myallocate(int size, char* FILE, int LINE, int tid){
 
 
