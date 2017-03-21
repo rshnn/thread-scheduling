@@ -695,13 +695,13 @@ void* scheduler_malloc(int size){
 	if(initialized == 0)
 		initMemoryManager();
 
-	if(size == 16)
-		printf("The value of is free %i on thread_unit iteration %i\n", \
-			book_keeper[PAGES_IN_MEMORY-10].isfree,iteration);
+	// if(size == 16)
+	// 	printf("The value of is free %i on thread_unit iteration %i\n", \
+	// 		book_keeper[PAGES_IN_MEMORY-10].isfree,iteration);
 
-	if(size == 348)
-		printf("The value of is free %i on a ucontext iteration %i\n", \
-			book_keeper[PAGES_IN_MEMORY-10].isfree,iteration);
+	// if(size == 348)
+	// 	printf("The value of is free %i on a ucontext iteration %i\n", \
+	// 		book_keeper[PAGES_IN_MEMORY-2].isfree,iteration);
 
 
 	currME = memory[PAGES_IN_MEMORY-2];
@@ -709,9 +709,9 @@ void* scheduler_malloc(int size){
 		book_keeper[PAGES_IN_MEMORY-2].isfree = 0;
 		int temp = initMemEntry(1, 0, 0, size);
 		memcpy(memory[PAGES_IN_MEMORY-2], &temp, sizeof(int));
-		int next_ME = initMemEntry(1, 1, 0, PAGE_SIZE-4-size);
+		int next_ME = initMemEntry(1, 1, 0, PAGE_SIZE*2-4-size);
 		memcpy(((memory[PAGES_IN_MEMORY-2])+0x4+size), &next_ME, sizeof(int));
-		memcpy((memory[PAGES_IN_MEMORY-2]+0x4+size), &next_ME, sizeof(int));
+		// memcpy((memory[PAGES_IN_MEMORY-2]+0x4+size), &next_ME, sizeof(int));
 		return currME+0x4;
 	}else{ //set up is done just look for a free mementry and chop us as needed
 		while(offset >= -4){//change to offset?
@@ -746,7 +746,6 @@ void* scheduler_malloc(int size){
 		return NULL;
 	}
 	return NULL;	
-	
 }
 
 void* myallocate(int size, char* FILE, int LINE, int tid){
