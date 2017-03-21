@@ -332,7 +332,7 @@ void scheduler_init(){
 	SYS_MODE = 1;
 
 	/* Malloc space for scheduler */
-	if ((scheduler = (scheduler_t*)malloc(sizeof(scheduler_t))) == NULL){
+	if ((scheduler = (scheduler_t*)scheduler_malloc(sizeof(scheduler_t))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 	}
 
@@ -352,12 +352,12 @@ void scheduler_init(){
 		SETUP THREAD_UNITS FOR MAINTENANCE AND MAIN THREADS   
     **********************************************************************************/
 
-	if((main_thread_unit = (thread_unit*)malloc(sizeof(thread_unit))) == NULL){
+	if((main_thread_unit = (thread_unit*)myallocate(sizeof(thread_unit), __FILE__, __LINE__, 0)) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 		exit(-1);		
 	}
 
-	if((maintenance_thread_unit = (thread_unit*)malloc(sizeof(thread_unit))) == NULL){
+	if((maintenance_thread_unit = (thread_unit*)myallocate(sizeof(thread_unit), __FILE__, __LINE__, 0)) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 		exit(-1);		
 	}
@@ -370,7 +370,7 @@ void scheduler_init(){
 	main_thread_unit->next = NULL;
 	main_thread_unit->priority = 0;
 
-	main_thread_unit->thread = (my_pthread_t*)malloc(sizeof(my_pthread_t));
+	main_thread_unit->thread = (my_pthread_t*)myallocate(sizeof(my_pthread_t), __FILE__, __LINE__, 1);
 	main_thread_unit->thread->threadID = 1;
 	main_thread_unit->thread->priority = 0;
 	main_thread_unit->thread->thread_unit = main_thread_unit;
@@ -380,7 +380,7 @@ void scheduler_init(){
 	/* MAIN UCONTEXT SETUP */
 
 	/* Attempt to malloc space for main_ucontext */
-	if ((main_thread_unit->ucontext = (ucontext_t*)malloc(sizeof(ucontext_t))) == NULL){
+	if ((main_thread_unit->ucontext = (ucontext_t*)scheduler_malloc(sizeof(ucontext_t))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 		exit(-1);
 	}
@@ -402,7 +402,7 @@ void scheduler_init(){
 	/* MAINTENANCE UCONTEXT SETUP */
 
 	/* Attempt to malloc space for maintenance_ucontext */
-	if ((maintenance_thread_unit->ucontext = (ucontext_t*)malloc(sizeof(ucontext_t))) == NULL){
+	if ((maintenance_thread_unit->ucontext = (ucontext_t*)scheduler_malloc(sizeof(ucontext_t))) == NULL){
 		printf("Errno value %d:  Message: %s: Line %d\n", errno, strerror(errno), __LINE__);
 		exit(-1);
 	}
@@ -937,7 +937,7 @@ void f2(int x){
 
 	// printf("\tExecuting f2:\tArg is %i.\n", x);
 
-	sleep(4);
+	sleep(1);
 	
 	// while(1){
 	// 	usleep(100000);
@@ -1062,6 +1062,8 @@ int main(int argc, char **argv){
 	printf("\tThreadUnit:\t%i\n",sizeof(thread_unit));
 	printf("\tThreadUnitList:\t%i\n",sizeof(thread_unit_list));
 	printf("\tScheduler:\t%i\n", sizeof(scheduler_t));
+	printf("\tUcontext:\t%i\n", sizeof(ucontext_t));
+
 
 
 	if(argc != 2){

@@ -686,6 +686,7 @@ void* multiplePageRequest(int size, char* FILE, int LINE, int tid){
 
 void* scheduler_malloc(int size){
 	void* da_pointer;
+	static int iteration = 0;
 	int temp_entry;
 	int* currME;
 	int isfree;
@@ -693,7 +694,16 @@ void* scheduler_malloc(int size){
 	int offset = PAGE_SIZE*2;
 	if(initialized == 0)
 		initMemoryManager();
-	
+
+	if(size == 16)
+		printf("The value of is free %i on thread_unit iteration %i\n", \
+			book_keeper[PAGES_IN_MEMORY-10].isfree,iteration);
+
+	if(size == 348)
+		printf("The value of is free %i on a ucontext iteration %i\n", \
+			book_keeper[PAGES_IN_MEMORY-10].isfree,iteration);
+
+
 	currME = memory[PAGES_IN_MEMORY-2];
 	if(book_keeper[PAGES_IN_MEMORY-2].isfree == 1){//set it up (just in case)
 		book_keeper[PAGES_IN_MEMORY-2].isfree = 0;
