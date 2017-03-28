@@ -22,6 +22,7 @@ my_pthread_mutex_t test_mutex2;
 
 thread_unit*		maintenance_thread_unit;
 thread_unit* 		main_thread_unit;
+struct sigaction s;
 
 
 
@@ -137,9 +138,38 @@ void scheduler_runThread(thread_unit* thread, thread_unit* prev){
 	/* Context will switch back to scheduler either when thread completes or at a SIGARLM */
 }
 
+int get_pthread_id() {
+	printf(ANSI_COLOR_YELLOW "\nWe are retrieving threadID\n" ANSI_COLOR_RESET);
+	return scheduler->currently_running->thread->threadID;
+}
+
+void sig_handler(int sig, siginfo_t* si, void* ptr){
+	SYS_MODE = 1;
+
+	printf(ANSI_COLOR_YELLOW "\nWe got a SIGSEGV signal\n" ANSI_COLOR_RESET);
+	
+	void* addr = si->si_addr;
+	int tid = get_pthread_id();
+	// int tid = scheduler->currently_running->thread->threadID;
+	printf(ANSI_COLOR_YELLOW "\nWe are entering unprotect_memory\n" ANSI_COLOR_RESET);
+	unprotect_memory(tid, addr);
+	SYS_MODE = 0;
+	printf("Done with SIGSEG.  Resetting timer.\n");
+	
+	// struct sigaction s;
+	s.sa_flags = SA_SIGINFO|SA_RESETHAND;
+	s.sa_sigaction = sig_handler;
+	sigemptyset(&s.sa_mask);
+	sigaction(SIGSEGV, &s, 0);
+	
+	resetTheTimer();
+}
+
+
 
 void scheduler_sig_handler(){
 
+	printf(ANSI_COLOR_YELLOW"Scheduler Signal Handler.  Timer Interupt.\n"ANSI_COLOR_RESET);
 
 	if(SYS_MODE == 1){
 		printf("NEGATE SIGARLM: In the middle of a scheduler/pthread call.\n");
@@ -164,20 +194,6 @@ void scheduler_sig_handler(){
 }
 
 
-int get_pthread_id() {
-	printf(ANSI_COLOR_YELLOW "\nWe are retrieving threadID\n" ANSI_COLOR_RESET);
-	return scheduler->currently_running->thread->threadID;
-}
-
-void sig_handler(int sig, siginfo_t* si, void* ptr){
-	printf(ANSI_COLOR_YELLOW "\nWe got a SIGSEGV signal\n" ANSI_COLOR_RESET);
-
-	void* addr = si->si_addr;
-	int tid = get_pthread_id();
-
-	printf(ANSI_COLOR_YELLOW "\nWe are entering unprotect_memory\n" ANSI_COLOR_RESET);
-	unprotect_memory(tid, addr);
-}
 
 
 void maintenance_cycle(){
@@ -470,13 +486,14 @@ void scheduler_init(){
 
 	/* Direct SIGSEGV to scheduler_sig_handler */
 	// struct sigaction s;
-	// s.sa_flags = SA_SIGINFO|SA_RESETHAND;
-	// s.sa_sigaction = sig_handler;
-	// sigemptyset(&s.sa_mask);
-	// sigaction(SIGSEGV, &s, 0);
+	s.sa_flags = SA_SIGINFO|SA_RESETHAND;
+	s.sa_sigaction = sig_handler;
+	sigemptyset(&s.sa_mask);
+	sigaction(SIGSEGV, &s, 0);
 
 	/* Direct sig-alarms to scheduler_sig_handler */
 	signal(SIGALRM, &scheduler_sig_handler);
+	
 	my_pthread_yield();
 
 }
@@ -611,7 +628,8 @@ void my_pthread_yield(){
 		maintenance_cycle(); 
 	}
 
-	// protect_memory();
+	printf("protecting memory.\n");
+	protect_memory();
 
 
 
@@ -938,6 +956,7 @@ int my_pthread_mutex_trylock(my_pthread_mutex_t* mutex){
 
 void* myallocate_proxy(int size, char* FILE, int LINE){
 
+	unlock_all_memory();
 	return myallocate(size, FILE, LINE, scheduler->currently_running->thread->threadID);
 
 }
@@ -950,17 +969,6 @@ void* myallocate_proxy(int size, char* FILE, int LINE){
 ************************************************************************************************************/
 
 
-void f1(int x){
-
-	while(1){
-		// usleep(500000);
-		// printf("\tExecuting f1:\tArg is %i\n", x);
-	
-	}
-
-	my_pthread_exit(NULL);
-}
-
 void f2(int x){
 
 
@@ -972,8 +980,9 @@ void f2(int x){
 	// 	usleep(100000);
 	// 	printf("\tExecuting f2:\tArg is %i.\n", x);
 	// }
-	printf("\tf2 completes execution.\n");
 
+
+	printf(ANSI_COLOR_CYAN"F2 is Attempting to allocate space for int*\n"ANSI_COLOR_RESET);
 	int* a;
 	a = (int*) myallocate_proxy(sizeof(int), __FILE__, __LINE__);
 	*a = 5;
@@ -981,66 +990,29 @@ void f2(int x){
 	printf("\t\tTID:%i\tMy memory-manager pointer: %p\tvalue:%i\n", x, a, *a);
 
 
+	printf("\tf2 completes execution. Exiting...\n");
     my_pthread_exit((void*)a);
+    printf("f2 Exited.\n");
 }
 
-void f3(my_pthread_t* thread){
-
-	printf("\tExecuting f3\tJoins thread %ld\n", thread->threadID);
-
-	char* receive;
-
-	my_pthread_join(*thread, (void**)&receive);
-	
-
-	printf("\tI got this: %s\n", (char*) receive);
-	my_pthread_exit(NULL);
-}
-
-
-void m1(my_pthread_t* thread){
-
-	my_pthread_mutex_lock(&test_mutex1);
-
-	printf("\tm1: I (TID %ld) got the lock", thread->threadID);	
-
-	// test_counter+= thread->threadID;
-	test_counter1++;
-	printf("\tm1: I changed the counter1 to:\t\t"ANSI_COLOR_RED" %i\n"ANSI_COLOR_RESET, test_counter1);
-
-	my_pthread_yield();
-	my_pthread_mutex_unlock(&test_mutex1);
-	my_pthread_exit(NULL);
-}
-
-void m2(my_pthread_t* thread){
-
-	my_pthread_mutex_lock(&test_mutex2);
-
-	printf("\tm2: I (TID %ld) got the lock", thread->threadID);	
-
-	// test_counter+= thread->threadID;
-	test_counter2++;
-	printf("\tm2: I changed the counter2 to:\t\t"ANSI_COLOR_RED" %i\n"ANSI_COLOR_RESET, test_counter2);
-
-	my_pthread_yield();
-	my_pthread_mutex_unlock(&test_mutex2);
-	my_pthread_exit(NULL);
-}
 
 
 
 
 void myalloc_debug1(int num){
 
-	printf(ANSI_COLOR_RED "\n\nRunning pthread_join() debug test...\n\n" ANSI_COLOR_RESET);
+	printf(ANSI_COLOR_RED "\n\nRunning myalloc_debug1() test...\n\n" ANSI_COLOR_RESET);
 	
 	int NUM_PTHREADS = num;
 
-
+	resetTheTimer();
+	printf("Before first myalloc call\n");
 	// my_pthread_t pthread_array[NUM_PTHREADS];
-	my_pthread_t* pthread_array = (my_pthread_t*)myallocate(NUM_PTHREADS * sizeof(my_pthread_t), __FILE__, __LINE__, 1);
+	my_pthread_t* pthread_array = (my_pthread_t*)myallocate(NUM_PTHREADS * sizeof(my_pthread_t), __FILE__, __LINE__, 0);
+	// my_pthread_t* pthread_array = (my_pthread_t*)malloc(sizeof(my_pthread_t)*NUM_PTHREADS);
 	my_pthread_attr_t* useless_attr;
+
+	printf("After first myalloc call\n");
 
 	int i;
 

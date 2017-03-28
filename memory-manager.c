@@ -13,7 +13,7 @@ SuperPTArray*	SPTA_library;		// Array of SPA's. One for each thread (index = TID
 ThrInfo** 		thread_list;		// Array of ThrInfo ptrs for all threads 
 SwapUnit* 		swap_bank; 			// Array of SwapUnit structs.  Book keeping for swap file
 
-int 	MEMORY_SIZE 	= 2<<22;	// 8MB  (8388608 bytes)
+int 	MEMORY_SIZE 	= 2<<20;	// 8MB  (8388608 bytes)
 int 	SWAP_SIZE		= 2<<23; 	// 16MB (16777216 bytes)
 int 	PAGE_SIZE 		= 0;		// Dynamically populated in init(). ~4096 bytes
 int 	PAGES_IN_MEMORY = 0;		// Dynamically populated in init(). 2048 for PS=4096
@@ -1112,6 +1112,8 @@ void* myallocate(int size, char* FILE, int LINE, int tid){
 
 	_printPageTableEntry(myPTE);
 
+	protect_memory();
+
 	return da_pointer;
 
 
@@ -1199,13 +1201,16 @@ PTEntry* getPTEntry(int tid, int page_num){
 PTEntry* swap(int tid, int page_num) {
 	printf("Inside swap\n");
 	int offset = page_num * PAGE_SIZE;
-	if(mprotect(memory[0]+offset, PAGE_SIZE, PROT_WRITE)){
+	if(mprotect(memory[page_num], PAGE_SIZE, PROT_READ|PROT_WRITE)){
 		perror("Could not \"mprotect(memory[page_num], PAGE_SIZE, PROT_WRITE)\"");
 		exit(errno);
 	}
 
-	PTEntry* myPTE = getPTEntry(tid, page_num);
-	if((book_keeper[page_num].TID != tid)){
+
+	/* NOT TESTED YET V */
+	// PTEntry* myPTE = getPTEntry(tid, page_num);
+	PTEntry* myPTE;
+	if((book_keeper[page_num].TID != tid) && book_keeper[page_num].TID != 0){
 		/* Get the PTEntry for this page */
 
 		/* I already have a set location in memory */
@@ -1229,6 +1234,7 @@ PTEntry* swap(int tid, int page_num) {
 		book_keeper[page_num].TID = tid;
 		book_keeper[page_num].entry = myPTE;
 	}
+	printf("Leaving swap.\n");
 	return myPTE;
 }
 
@@ -1282,32 +1288,61 @@ PTEntry* unprotect_memory(int tid, void* addr){
 }
 
 
+void unlock_all_memory(){
+	printf(ANSI_COLOR_YELLOW"Unprotecting all memory.\n");
+
+	int i;
+	for(i=0; i<VALID_PAGES_MEM; i++){
+
+		if(mprotect(memory[i], PAGE_SIZE, PROT_WRITE | PROT_WRITE)){
+    		perror("Could not: mprotect(memory[i], MEMORY_SIZE, PROT_WRITE)");
+    		exit(errno);
+		}
+	
+	}
+
+}
+
 void protect_memory(){
 	printf(ANSI_COLOR_YELLOW "\nWe are about to mprotect(PROT_NONE) all memory\n" ANSI_COLOR_RESET);
 
-	if(mprotect(memory[0], VALID_PAGES_MEM*PAGE_SIZE, PROT_NONE)){
-		perror("Could not: mprotect(memory[0], MEMORY_SIZE, PROT_NONE)");
-		exit(errno);
-	}
+	// if(mprotect(memory[0], VALID_PAGES_MEM*PAGE_SIZE, PROT_NONE)){
+	// 	perror("Could not: mprotect(memory[0], MEMORY_SIZE, PROT_NONE)");
+	// 	exit(errno);
+	// }
 
-	printf("Protected all of memory.  Unprotecting TID 0.\n");
-
-
+	printf("Protecting all of memory that is not TID 0.\n");
 
 	int i;
-	for(i=0; i<VALID_PAGES_MEM; i++) {
-    	// printf("Entered for l\n");
-	    if(book_keeper[i].TID == 0) {
-	    	printf("bookkeeper tid\n");
-	        int offset = i*PAGE_SIZE;
-	    	if(mprotect(memory[0]+offset, PAGE_SIZE, PROT_WRITE)){
-	    		perror("Could not: mprotect(memory[0]+offset, MEMORY_SIZE, PROT_WRITE)");
+	for(i=0; i<VALID_PAGES_MEM; i++){
+
+		if(book_keeper[i].TID != 0){
+			if(mprotect(memory[i], PAGE_SIZE, PROT_NONE)){
+	    		perror("Could not: mprotect(memory[i], MEMORY_SIZE, PROT_WRITE)");
 	    		exit(errno);
-	    	}else{
-		    	printf("Successfully unprotected\n");
-	    	}
-	    }
+			}
+		}
+
+
 	}
+
+
+
+	// int i;
+	// for(i=0; i<VALID_PAGES_MEM; i++) {
+ //    	// printf("Entered for l\n");
+	//     if(book_keeper[i].TID == 0) {
+	//     	// printf("bookkeeper tid\n");
+	//         int offset = i*PAGE_SIZE;
+	//     	// if(mprotect(memory[0]+offset, PAGE_SIZE, PROT_WRITE)){
+ //    		if(mprotect(memory[i], PAGE_SIZE, PROT_WRITE)){
+	//     		perror("Could not: mprotect(memory[i], MEMORY_SIZE, PROT_WRITE)");
+	//     		exit(errno);
+	//     	}else{
+	// 	    	// printf("Successfully unprotected\n");
+	//     	}
+	//     }
+	// }
 
 
 
