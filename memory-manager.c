@@ -675,6 +675,160 @@ void* multiplePageRequest(int size, char* FILE, int LINE, int tid){
 
 
 
+PTEntry* getPTEntry(int tid, int page_num){
+	if(page_num < 0){
+		return NULL;
+	}
+
+	ThrInfo* thread = thread_list[tid];
+	int i;
+	int j;
+
+	for(i=0; i<32; i++){
+		if(thread->SPTArray->array[i] == 1){
+			for(j=0; j<128; j++){
+				if(thread->blocks[i]->ptentries[j].mem_page_number == page_num){
+					return &(thread->blocks[i]->ptentries[j]);
+				}
+			}		
+		}
+	}
+
+	return NULL;
+}
+
+
+PTEntry* swap(int tid, int page_num) {
+	printf("Inside swap\n");
+	int offset = page_num * PAGE_SIZE;
+	if(mprotect(memory[page_num], PAGE_SIZE, PROT_READ|PROT_WRITE)){
+		perror("Could not \"mprotect(memory[page_num], PAGE_SIZE, PROT_WRITE)\"");
+		exit(errno);
+	}
+
+
+	/* NOT TESTED YET V */
+	// PTEntry* myPTE = getPTEntry(tid, page_num);
+	PTEntry* myPTE;
+	if((book_keeper[page_num].TID != tid) && book_keeper[page_num].TID != 0){
+		/* Get the PTEntry for this page */
+
+		/* I already have a set location in memory */
+		PTEntry* entry_to_evict = book_keeper[page_num].entry;
+		entry_to_evict->resident = 0;
+						
+		/*write guy back*/
+		swap_file = fopen("swagmaster.swp", "r+");
+		lseek(fileno(swap_file), ((entry_to_evict->swap_page_number)*PAGE_SIZE), SEEK_SET);
+		write(fileno(swap_file), memory[page_num], PAGE_SIZE);
+		close(fileno(swap_file));
+
+		/*write my page into memory[mymemspot]*/
+		swap_file = fopen("swagmaster.swp", "r");
+		lseek(fileno(swap_file), ((myPTE->swap_page_number)*PAGE_SIZE), SEEK_SET);
+		read(fileno(swap_file), memory[page_num], PAGE_SIZE);
+		close(fileno(swap_file));
+
+		/* updating book_keeper */
+		myPTE->resident = 1;
+		book_keeper[page_num].TID = tid;
+		book_keeper[page_num].entry = myPTE;
+	}
+	printf("Leaving swap.\n");
+	return myPTE;
+}
+
+
+PTEntry** get_all_dependents(int tid, int page_num) {
+
+	int orig_page_num = page_num;
+
+	int total_pages = 1;
+	int left_pages = 0;
+
+	PTEntry* page_entry = book_keeper[orig_page_num].entry;
+	while(page_entry->left_dependent == 1){
+		total_pages++;
+		left_pages++;
+
+		page_num--;
+		page_entry = swap(tid, page_num);
+	}
+
+	page_num = orig_page_num;
+	page_entry = book_keeper[orig_page_num].entry;
+	while(page_entry->right_dependent == 1){
+		total_pages++;
+
+		page_num++;
+		page_entry = swap(tid, page_num);
+	}
+
+	PTEntry** dependents = (PTEntry**)malloc(total_pages * sizeof(PTEntry*));
+
+	int i;
+	int first_page = orig_page_num - left_pages;
+	for(i=0; i<total_pages; i++){
+		dependents[i] = book_keeper[first_page+i].entry;
+	}
+
+	return dependents;
+}
+
+
+PTEntry* unprotect_memory(int tid, void* addr){
+	printf(ANSI_COLOR_YELLOW "\nWe are about to mprotect(PROT_WRITE) all memory\n" ANSI_COLOR_RESET);
+
+	int page_num = ((int*)addr - memory[0])/(sizeof(int*));
+	printf("TID %i's PageNum %i is going to be unprotected..\n", tid, page_num);
+	PTEntry* ptentry = swap(tid, page_num);
+
+
+
+	// PTEntry** dependents = get_all_dependents(tid, page_num);
+
+	return ptentry;
+}
+
+
+void unlock_all_memory(){
+	printf(ANSI_COLOR_YELLOW"Unprotecting all memory.\n");
+
+	int i;
+	for(i=0; i<VALID_PAGES_MEM; i++){
+
+		if(mprotect(memory[i], PAGE_SIZE, PROT_WRITE | PROT_WRITE)){
+    		perror("Could not: mprotect(memory[i], MEMORY_SIZE, PROT_WRITE)");
+    		exit(errno);
+		}
+	
+	}
+
+}
+
+void protect_memory(){
+
+	printf("Protecting all of memory that is not TID 0.\n");
+
+		// printf("pagesinmem %i, validpages: %i\n", PAGES_IN_MEMORY, VALID_PAGES_MEM);
+	int i;
+	for(i=0; i<VALID_PAGES_MEM; i++){
+
+
+		if(book_keeper[i].TID != 0 ||  book_keeper[i].TID != 1){
+			if(mprotect(memory[i], PAGE_SIZE, PROT_NONE)){
+	    		perror("Could not: mprotect(memory[i], MEMORY_SIZE, PROT_WRITE)");
+	    		exit(errno);
+			}
+		}
+
+
+	}
+
+
+}
+
+
 
 
 
@@ -750,6 +904,7 @@ void* scheduler_malloc(int size){
 }
 
 void* myallocate(int size, char* FILE, int LINE, int tid){
+
 
 
 
@@ -1096,7 +1251,7 @@ void* myallocate(int size, char* FILE, int LINE, int tid){
 	}
 
 
-	printf("I found it its this: %i\n", largest);
+	// printf("I found it its this: %i\n", largest);
 	/* Modify myPTE's values when done*/
 	myPTE->largest_available = largest;
 
@@ -1112,7 +1267,7 @@ void* myallocate(int size, char* FILE, int LINE, int tid){
 
 	_printPageTableEntry(myPTE);
 
-	protect_memory();
+	// protect_memory();
 
 	return da_pointer;
 
@@ -1175,180 +1330,6 @@ void* mydellocate(void* ptr){
 }
 
 
-PTEntry* getPTEntry(int tid, int page_num){
-	if(page_num < 0){
-		return NULL;
-	}
-
-	ThrInfo* thread = thread_list[tid];
-	int i;
-	int j;
-
-	for(i=0; i<32; i++){
-		if(thread->SPTArray->array[i] == 1){
-			for(j=0; j<128; j++){
-				if(thread->blocks[i]->ptentries[j].mem_page_number == page_num){
-					return &(thread->blocks[i]->ptentries[j]);
-				}
-			}		
-		}
-	}
-
-	return NULL;
-}
-
-
-PTEntry* swap(int tid, int page_num) {
-	printf("Inside swap\n");
-	int offset = page_num * PAGE_SIZE;
-	if(mprotect(memory[page_num], PAGE_SIZE, PROT_READ|PROT_WRITE)){
-		perror("Could not \"mprotect(memory[page_num], PAGE_SIZE, PROT_WRITE)\"");
-		exit(errno);
-	}
-
-
-	/* NOT TESTED YET V */
-	// PTEntry* myPTE = getPTEntry(tid, page_num);
-	PTEntry* myPTE;
-	if((book_keeper[page_num].TID != tid) && book_keeper[page_num].TID != 0){
-		/* Get the PTEntry for this page */
-
-		/* I already have a set location in memory */
-		PTEntry* entry_to_evict = book_keeper[page_num].entry;
-		entry_to_evict->resident = 0;
-						
-		/*write guy back*/
-		swap_file = fopen("swagmaster.swp", "r+");
-		lseek(fileno(swap_file), ((entry_to_evict->swap_page_number)*PAGE_SIZE), SEEK_SET);
-		write(fileno(swap_file), memory[page_num], PAGE_SIZE);
-		close(fileno(swap_file));
-
-		/*write my page into memory[mymemspot]*/
-		swap_file = fopen("swagmaster.swp", "r");
-		lseek(fileno(swap_file), ((myPTE->swap_page_number)*PAGE_SIZE), SEEK_SET);
-		read(fileno(swap_file), memory[page_num], PAGE_SIZE);
-		close(fileno(swap_file));
-
-		/* updating book_keeper */
-		myPTE->resident = 1;
-		book_keeper[page_num].TID = tid;
-		book_keeper[page_num].entry = myPTE;
-	}
-	printf("Leaving swap.\n");
-	return myPTE;
-}
-
-
-PTEntry** get_all_dependents(int tid, int page_num) {
-
-	int orig_page_num = page_num;
-
-	int total_pages = 1;
-	int left_pages = 0;
-
-	PTEntry* page_entry = book_keeper[orig_page_num].entry;
-	while(page_entry->left_dependent == 1){
-		total_pages++;
-		left_pages++;
-
-		page_num--;
-		page_entry = swap(tid, page_num);
-	}
-
-	page_num = orig_page_num;
-	page_entry = book_keeper[orig_page_num].entry;
-	while(page_entry->right_dependent == 1){
-		total_pages++;
-
-		page_num++;
-		page_entry = swap(tid, page_num);
-	}
-
-	PTEntry** dependents = (PTEntry**)malloc(total_pages * sizeof(PTEntry*));
-
-	int i;
-	int first_page = orig_page_num - left_pages;
-	for(i=0; i<total_pages; i++){
-		dependents[i] = book_keeper[first_page+i].entry;
-	}
-
-	return dependents;
-}
-
-
-PTEntry* unprotect_memory(int tid, void* addr){
-	printf(ANSI_COLOR_YELLOW "\nWe are about to mprotect(PROT_WRITE) all memory\n" ANSI_COLOR_RESET);
-
-	int page_num = ((int*)addr - memory[0])/(PAGE_SIZE);
-	PTEntry* ptentry = swap(tid, page_num);
-
-	// PTEntry** dependents = get_all_dependents(tid, page_num);
-
-	return ptentry;
-}
-
-
-void unlock_all_memory(){
-	printf(ANSI_COLOR_YELLOW"Unprotecting all memory.\n");
-
-	int i;
-	for(i=0; i<VALID_PAGES_MEM; i++){
-
-		if(mprotect(memory[i], PAGE_SIZE, PROT_WRITE | PROT_WRITE)){
-    		perror("Could not: mprotect(memory[i], MEMORY_SIZE, PROT_WRITE)");
-    		exit(errno);
-		}
-	
-	}
-
-}
-
-void protect_memory(){
-	printf(ANSI_COLOR_YELLOW "\nWe are about to mprotect(PROT_NONE) all memory\n" ANSI_COLOR_RESET);
-
-	// if(mprotect(memory[0], VALID_PAGES_MEM*PAGE_SIZE, PROT_NONE)){
-	// 	perror("Could not: mprotect(memory[0], MEMORY_SIZE, PROT_NONE)");
-	// 	exit(errno);
-	// }
-
-	printf("Protecting all of memory that is not TID 0.\n");
-
-	int i;
-	for(i=0; i<VALID_PAGES_MEM; i++){
-
-		if(book_keeper[i].TID != 0){
-			if(mprotect(memory[i], PAGE_SIZE, PROT_NONE)){
-	    		perror("Could not: mprotect(memory[i], MEMORY_SIZE, PROT_WRITE)");
-	    		exit(errno);
-			}
-		}
-
-
-	}
-
-
-
-	// int i;
-	// for(i=0; i<VALID_PAGES_MEM; i++) {
- //    	// printf("Entered for l\n");
-	//     if(book_keeper[i].TID == 0) {
-	//     	// printf("bookkeeper tid\n");
-	//         int offset = i*PAGE_SIZE;
-	//     	// if(mprotect(memory[0]+offset, PAGE_SIZE, PROT_WRITE)){
- //    		if(mprotect(memory[i], PAGE_SIZE, PROT_WRITE)){
-	//     		perror("Could not: mprotect(memory[i], MEMORY_SIZE, PROT_WRITE)");
-	//     		exit(errno);
-	//     	}else{
-	// 	    	// printf("Successfully unprotected\n");
-	//     	}
-	//     }
-	// }
-
-
-
-}
-
-
 int debug_1_simple_allocates_multiple_thread(){
 
 
@@ -1379,10 +1360,10 @@ int debug_1_simple_allocates_multiple_thread(){
  	return 0;
 }
 
-
+/*
 int debug_2_multiple_page_request(){
 
-/*	initMemoryManager();
+	initMemoryManager();
 
 	printf("~~~~~~~~TID=4~~~~~~~~\n");
 	int* a = (int*) myallocate(PAGE_SIZE*3, " ", 3, 4);
@@ -1396,29 +1377,30 @@ int debug_2_multiple_page_request(){
 	printf("~~~~~~~~TID=4~~~~~~~~\n");
 	myallocate(PAGE_SIZE*4, " ", 3, 4);
 
-*/
-	/* This does not work bc no signal handler for mprotect yet */
+
+	// This does not work bc no signal handler for mprotect yet
 	// printf(ANSI_COLOR_RED"%i\n"ANSI_COLOR_RESET, *a);
 	int*a;
 	int*b;
 	int*c;
 
-	// printf("~~~~~~~~TID=3~~~~~~~~\n");
-	// //myallocate(PAGE_SIZE*4, " ", 3, 3);
-	// printf("~~~~~~~~TID=4~~~~~~~~\n");
-	// a = (int*) scheduler_malloc(4,2);
-	// *a = 38;
-	// printf(ANSI_COLOR_RED"a:%i\n"ANSI_COLOR_RESET, *a);
-	// b = (int*) scheduler_malloc(4,2);
-	// *b = 5;
-	// printf(ANSI_COLOR_RED"a:%i, b:%i\n"ANSI_COLOR_RESET, *a,*b);
-	// c = (int*) scheduler_malloc(4,2);
-	// *c = 5;
-	// printf(ANSI_COLOR_RED"a:%i, b:%i, c:%i\n"ANSI_COLOR_RESET, *a,*b,*c);
+	printf("~~~~~~~~TID=3~~~~~~~~\n");
+	//myallocate(PAGE_SIZE*4, " ", 3, 3);
+	printf("~~~~~~~~TID=4~~~~~~~~\n");
+	a = (int*) scheduler_malloc(4,2);
+	*a = 38;
+	printf(ANSI_COLOR_RED"a:%i\n"ANSI_COLOR_RESET, *a);
+	b = (int*) scheduler_malloc(4,2);
+	*b = 5;
+	printf(ANSI_COLOR_RED"a:%i, b:%i\n"ANSI_COLOR_RESET, *a,*b);
+	c = (int*) scheduler_malloc(4,2);
+	*c = 5;
+	printf(ANSI_COLOR_RED"a:%i, b:%i, c:%i\n"ANSI_COLOR_RESET, *a,*b,*c);
 	
 	return 0;
 }
-	
+
+*/	
 
 /*
 int main(){

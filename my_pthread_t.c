@@ -119,6 +119,10 @@ void scheduler_runThread(thread_unit* thread, thread_unit* prev){
 	/* Will execute function that thread points to. */ 
 	
 
+	printf("protecting memory.\n");
+	protect_memory();
+
+
 	if(prev == NULL && first_run_complete == 0){
 		// Intialize case
 		first_run_complete = 1; 
@@ -153,7 +157,6 @@ void sig_handler(int sig, siginfo_t* si, void* ptr){
 	// int tid = scheduler->currently_running->thread->threadID;
 	printf(ANSI_COLOR_YELLOW "\nWe are entering unprotect_memory\n" ANSI_COLOR_RESET);
 	unprotect_memory(tid, addr);
-	SYS_MODE = 0;
 	printf("Done with SIGSEG.  Resetting timer.\n");
 	
 	// struct sigaction s;
@@ -162,7 +165,9 @@ void sig_handler(int sig, siginfo_t* si, void* ptr){
 	sigemptyset(&s.sa_mask);
 	sigaction(SIGSEGV, &s, 0);
 	
-	resetTheTimer();
+	SYS_MODE = 0;
+	my_pthread_yield();
+	// resetTheTimer();
 }
 
 
@@ -177,17 +182,17 @@ void scheduler_sig_handler(){
 	}
 
     
-    if(scheduler->currently_running != NULL){
-    	printf(ANSI_COLOR_GREEN "\nSIGALRM\tThread %ld just ran for %i microseconds. \n\tInterrupting Thread %ld.\n" 
-    			ANSI_COLOR_RESET, 
-    			scheduler->currently_running->thread->threadID, 
-    			scheduler->currently_running->time_slice,
-    			scheduler->currently_running->thread->threadID);
+    // if(scheduler->currently_running != NULL){
+    // 	printf(ANSI_COLOR_GREEN "\nSIGALRM\tThread %ld just ran for %i microseconds. \n\tInterrupting Thread %ld.\n" 
+    // 			ANSI_COLOR_RESET, 
+    // 			scheduler->currently_running->thread->threadID, 
+    // 			scheduler->currently_running->time_slice,
+    // 			scheduler->currently_running->thread->threadID);
 		
-    }else{
-    	printf(ANSI_COLOR_GREEN "\nSIGALRM\tNo threads have run yet.\n" ANSI_COLOR_RESET);
+    // }else{
+    // 	printf(ANSI_COLOR_GREEN "\nSIGALRM\tNo threads have run yet.\n" ANSI_COLOR_RESET);
 
-    }
+    // }
     
 
     my_pthread_yield();
@@ -628,9 +633,7 @@ void my_pthread_yield(){
 		maintenance_cycle(); 
 	}
 
-	printf("protecting memory.\n");
-	protect_memory();
-
+	
 
 
 
