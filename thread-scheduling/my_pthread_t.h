@@ -30,7 +30,7 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
-#define PAGE_SIZE 			128					// Stack size defaults to page size
+#define PAGE_SIZE 			4096					// Stack size defaults to page size
 
 
 #define PRIORITY_LEVELS 	50						// Number of priority levels

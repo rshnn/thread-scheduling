@@ -1087,16 +1087,8 @@ int main(int argc, char **argv){
 	}
 
 	int how_many_threads_ya_want = atoi(argv[1]);
-
-
 	printf("%i\n", how_many_threads_ya_want);
 
 	test_function(how_many_threads_ya_want);
-	// printf("sizeof(threadUNit): %i\n", sizeof(thread_unit));
-	// printf("sizeof(threadUNitlist): %i\n", sizeof(thread_unit_list));
-	// printf("sizeof(threadUNit+ucontext): %i\n", sizeof(thread_unit)+sizeof(ucontext_t));
-	// printf("sizeof(uc): %i\n", sizeof(ucontext_t));
-
-
 }
 
